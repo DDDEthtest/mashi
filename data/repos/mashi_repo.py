@@ -1,5 +1,4 @@
 import asyncio
-from io import BytesIO
 
 from data.db.daos.mashers_dao import MashersDao
 from data.models.mashup_error import MashupError
@@ -8,7 +7,7 @@ from data.remote.images_api import ImagesApi
 from data.remote.mashi_api import MashiApi
 from utils.helpers.combiner import get_combined_img_bytes
 from utils.helpers.generator import generate_minted_svg
-from utils.helpers.gif_combiner import get_combined_gif
+from utils.helpers.webp_combiner import get_combined_webp
 from utils.helpers.svg_helper import replace_colors
 
 layer_order = [
@@ -123,7 +122,7 @@ class MashiRepo:
                 ordered_traits.append(generate_minted_svg(nft_name))
 
             if is_animated:
-                png_bytes = get_combined_gif(
+                png_bytes = get_combined_webp(
                     ordered_traits,
                     is_minted=bool(mint),
                 )

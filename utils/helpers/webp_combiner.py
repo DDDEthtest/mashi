@@ -25,7 +25,7 @@ def _svg_bytes_to_img(svg_bytes, target_size=None):
     return img
 
 
-def get_combined_gif(
+def get_combined_webp(
         sorted_traits: list,
         bg_size=(552, 736),
         overlay_size=(380, 600),
@@ -88,6 +88,7 @@ def get_combined_gif(
         print(len(frames))
 
     imgs = []
+
     for sorted_traits in zip(*imgs_frames):
         sorted_traits = list(sorted_traits)  # convert tuple to list
 
@@ -120,19 +121,19 @@ def get_combined_gif(
         imgs.append(output_bytes.getvalue())
 
     # Convert PNG bytes to PIL Images
-    gif_frames = [Image.open(io.BytesIO(png)) for png in imgs]
+    webp_frames = [Image.open(io.BytesIO(png)).convert("RGBA") for png in imgs]  # keep RGBA for transparency
 
-    output_gif_bytes = io.BytesIO()
-    gif_frames[0].save(
-        output_gif_bytes,
-        format='GIF',
+    output_webp_bytes = io.BytesIO()
+    webp_frames[0].save(
+        output_webp_bytes,
+        format='WEBP',
         save_all=True,
-        append_images=gif_frames[1:],
-        duration=100,  # duration of each frame in milliseconds
+        append_images=webp_frames[1:],
+        duration=100,  # duration per frame in ms
         loop=0,  # 0 = infinite loop
-        disposal=0  # makes frames replace previous ones
+        method=6,  # higher quality compression
+        lossless=True  # preserve exact colors
     )
 
-    # Get GIF bytes
-    gif_bytes = output_gif_bytes.getvalue()
-    return gif_bytes
+    webp_bytes = output_webp_bytes.getvalue()
+    return webp_bytes

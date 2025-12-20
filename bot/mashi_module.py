@@ -155,13 +155,13 @@ class MashiModule(commands.Cog):
 
                     # 4. Create Discord File
                     # Using .gif extension tells Discord to use its animated renderer
-                    file = discord.File(fp=buffer, filename="mashi_composite.gif")
+                    file = discord.File(fp=buffer, filename="mashi_composite.webp")
 
                     embed = discord.Embed(
                         title=f"{interaction.user.display_name}'s Mashi",
                         color=discord.Color.green()
                     )
-                    embed.set_image(url="attachment://mashi_composite.gif")
+                    embed.set_image(url="attachment://mashi_composite.webp")
 
                     # 5. Send the followup
                     await interaction.followup.send(embed=embed, file=file)
