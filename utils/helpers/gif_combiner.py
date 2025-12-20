@@ -25,7 +25,7 @@ def _svg_bytes_to_img(svg_bytes, target_size=None):
     return img
 
 
-def get_combined_img_bytes_v2(
+def get_combined_gif(
         sorted_traits: list,
         bg_size=(552, 736),
         overlay_size=(380, 600),

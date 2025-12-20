@@ -8,7 +8,7 @@ from data.remote.images_api import ImagesApi
 from data.remote.mashi_api import MashiApi
 from utils.helpers.combiner import get_combined_img_bytes
 from utils.helpers.generator import generate_minted_svg
-from utils.helpers.gif_combiner import get_combined_img_bytes_v2
+from utils.helpers.gif_combiner import get_combined_gif
 from utils.helpers.svg_helper import replace_colors
 
 layer_order = [
@@ -88,7 +88,7 @@ class MashiRepo:
         return nft_name
 
 
-    async def get_composite(self, wallet: str, mint: int | None = None, test: bool = False) -> str | MashupError:
+    async def get_composite(self, wallet: str, mint: int | None = None, is_animated: bool = False) -> str | MashupError:
         mashup = None
         try:
             mashup = self._mashi_api.get_mashi_data(wallet)
@@ -122,8 +122,11 @@ class MashiRepo:
             if mint:
                 ordered_traits.append(generate_minted_svg(nft_name))
 
-            if test:
-                png_bytes = get_combined_img_bytes_v2(ordered_traits)
+            if is_animated:
+                png_bytes = get_combined_gif(
+                    ordered_traits,
+                    is_minted=bool(mint),
+                )
             else:
                 png_bytes = get_combined_img_bytes(
                     ordered_traits,
