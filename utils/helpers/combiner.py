@@ -98,7 +98,8 @@ def get_combined_webp(
         sorted_traits: list,
         bg_size=(552, 736),
         overlay_size=(380, 600),
-        type: int = 0
+        type: int = 0,
+        is_minted=False
 ):
     if not sorted_traits:
         raise ValueError("No traits found")
