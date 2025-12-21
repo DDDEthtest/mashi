@@ -13,18 +13,25 @@ resample_mode = Image.Resampling.LANCZOS
 
 
 def _is_svg(trait):
-    return type(trait) is str and "<svg" in trait.lower()
-
+    try:
+        return type(trait) is str and "<svg" in trait.lower()
+    except Exception as e:
+        print(e)
+        return False
 
 def _svg_bytes_to_img(svg_bytes, target_size=None):
-    svg_bytes = remove_redundant_info(svg_bytes)
-    png_bytes = cairosvg.svg2png(bytestring=svg_bytes.encode("utf-8"))
+    try:
+        svg_bytes = remove_redundant_info(svg_bytes)
 
-    img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
-    if target_size:
-        img = img.resize(target_size, resample=resample_mode)
+        png_bytes = cairosvg.svg2png(bytestring=svg_bytes.encode("utf-8"))
 
-    return img
+        img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+        if target_size:
+            img = img.resize(target_size, resample=resample_mode)
+
+        return img
+    except Exception as e:
+        print(e)
 
 
 def get_combined_img_bytes(
@@ -33,6 +40,7 @@ def get_combined_img_bytes(
         overlay_size=(760, 1200),
         is_minted=False
 ):
+    print(1)
     if not sorted_traits:
         raise ValueError("No traits found")
 
@@ -42,7 +50,7 @@ def get_combined_img_bytes(
     base = base.resize(bg_size, resample=resample_mode)
 
     for index,trait in enumerate(sorted_traits):
-        if _is_svg(trait):
+        if is_gif(trait):
             sorted_traits[index] = extract_first_frame(trait)
 
     minted_trait = None

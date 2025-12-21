@@ -136,7 +136,7 @@ class MashiModule(commands.Cog):
             id = interaction.user.id
             wallet = self._mashers_dao.get_wallet(id)
             if wallet:
-                data = await self._mashi_repo.get_composite(wallet, is_animated=True, type=type)
+                data = await self._mashi_repo.get_composite(wallet, is_animated=True, img_type=type)
                 if data:
                     if not isinstance(data, (bytes, io.BytesIO)):
                         msg = getattr(data, 'error_msg', "Unknown error")
