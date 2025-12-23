@@ -126,7 +126,8 @@ class MashiRepo:
                 png_bytes = get_combined_anim(
                     ordered_traits,
                     is_minted=bool(mint),
-                    type=img_type
+                    type=img_type,
+                    is_test=is_test
                 )
             else:
                 png_bytes = get_combined_img_bytes(

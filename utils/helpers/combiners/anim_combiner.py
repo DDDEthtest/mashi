@@ -40,6 +40,7 @@ def get_combined_anim(
         bg_size=(552, 736),
         overlay_size=(380, 600),
         type: int = 0,
+        is_test=False,
         is_minted=False
 ):
     try:

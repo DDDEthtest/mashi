@@ -8,7 +8,7 @@ resample_mode = Image.Resampling.LANCZOS
 
 
 def is_svg(svg_bytes) -> bool:
-    return svg_bytes.lstrip().startswith(b"<svg")
+    return b"<svg" in svg_bytes.lstrip()
 
 
 def remove_redundant_info(svg_bytes) -> bytes:
@@ -22,7 +22,7 @@ def remove_redundant_info(svg_bytes) -> bytes:
     svg = re.sub(r'\s*inkscape:[^=]+="[^"]*"', '', svg)
     svg = re.sub(r'<SODI[^>]*>', '', svg)
     svg = re.sub(r'<!--.*?-->', '', svg)
-    return svg.strip().replace('\n', '').encode("utf-8")
+    return svg.lstrip().replace('\n', '').encode("utf-8")
 
 
 def replace_colors(svg_bytes, body_color: str, eyes_color: str, hair_color: str) -> bytes:
