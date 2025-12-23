@@ -13,15 +13,15 @@ def is_svg(svg_bytes) -> bool:
 
 def remove_redundant_info(svg_bytes) -> bytes:
     svg = svg_bytes.decode("utf-8")
-    svg = re.sub(r"<\?xml.*?\?>", "", svg)
-    svg = re.sub(r"<!DOCTYPE.*?>", "", svg)
+    svg = re.sub(r'^\s*<\?xml[^>]*\?>', '', svg, flags=re.MULTILINE | re.IGNORECASE)
+    svg = re.sub(r'<!DOCTYPE[^>]*>', '', svg, flags=re.IGNORECASE)
     svg = re.sub(r'serif:[^"]*"[^"]*"', '', svg)
     svg = re.sub(r'<sodipodi:namedview\b[^>]*?>[\s\S]*?<\/sodipodi:namedview>', '', svg)
     svg = re.sub(r"<sodipodi:namedview\b[^>]*/>", "", svg)
     svg = re.sub(r'\s*sodipodi:[^=]+="[^"]*"', '', svg)
     svg = re.sub(r'\s*inkscape:[^=]+="[^"]*"', '', svg)
     svg = re.sub(r'<SODI[^>]*>', '', svg)
-    svg = re.sub(r'<!--.*?-->', '', svg)
+    svg = re.sub(r'<!--.*?-->', '', svg, flags=re.DOTALL)
     return svg.lstrip().replace('\n', '').encode("utf-8")
 
 
