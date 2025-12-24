@@ -78,15 +78,27 @@ class MashiModule(commands.Cog):
 
 
     @app_commands.command(name="mashi", description="Get mashup")
-    @app_commands.describe(mint="#Mint")
-    async def mashi(self, interaction: discord.Interaction, mint: int | None = None):
+    @app_commands.describe(img_type="Static/Animated", mint="#Mint")
+    @app_commands.choices(img_type=[
+        app_commands.Choice(name="Static", value=0),
+        app_commands.Choice(name="GIF", value=1),
+        app_commands.Choice(name="WEBP", value=2),
+    ])
+    async def mashi(self, interaction: discord.Interaction, img_type: int = 0, mint: int | None = None):
         try:
             await interaction.response.defer(ephemeral=False)
 
             id = interaction.user.id
             wallet = self._mashers_dao.get_wallet(id)
             if wallet:
-                data = await self._mashi_repo.get_composite(wallet, mint)
+                if img_type == 0:
+                    ext = ".png"
+                elif img_type == 1:
+                    ext = ".gif"
+                else:
+                    ext = ".webp"
+
+                data = await self._mashi_repo.get_composite(wallet, img_type=img_type, mint=mint)
                 if data:
                     if type(data) is not bytes:
                         msg = data.error_msg
@@ -102,11 +114,12 @@ class MashiModule(commands.Cog):
                         )
                         return
 
+
                     buffer = BytesIO(data)
-                    file = discord.File(fp=buffer, filename="composite.png")
+                    file = discord.File(fp=buffer, filename=f"composite{ext}")
 
                     embed = discord.Embed(title=f"{interaction.user.display_name}'s Mashi", color=discord.Color.green())
-                    embed.set_image(url="attachment://composite.png")
+                    embed.set_image(url=f"attachment://composite{ext}")
 
                     await interaction.followup.send(embed=embed, file=file, ephemeral=False)
                     return
@@ -124,38 +137,59 @@ class MashiModule(commands.Cog):
                 ephemeral=True
             )
 
-    @app_commands.command(name="animated_mashi", description="Get animated mashup")
-    @app_commands.describe(mint="#Mint")
-    @app_commands.choices(type=[
-        app_commands.Choice(name="GIF", value=0),
-        app_commands.Choice(name="WEBP", value=1),
+    @app_commands.command(name="test_mashi", description="Get test mashup")
+    @app_commands.describe(img_type="Static/Animated")
+    @app_commands.choices(img_type=[
+        app_commands.Choice(name="Static", value=0),
+        app_commands.Choice(name="GIF", value=1),
+        app_commands.Choice(name="WEBP", value=2),
     ])
-    async def animated_mashi(self, interaction: discord.Interaction, mint: int | None = None, type: int = 0):
+    async def test_mashi(self, interaction: discord.Interaction, img_type: int = 0):
         try:
+            if int(interaction.channel_id) != int(TEST_CHANNEL_ID):
+                await interaction.response.send_message(
+                    "For testing purposes only",
+                    ephemeral=True
+                )
+                return
+
             await interaction.response.defer(ephemeral=False)
 
             id = interaction.user.id
             wallet = self._mashers_dao.get_wallet(id)
             if wallet:
-                data = await self._mashi_repo.get_composite(wallet, is_animated=True, img_type=type, mint=mint)
+                if img_type == 0:
+                    data = await self._mashi_repo.get_composite(wallet, mint=1, is_test=True)
+                    ext = ".png"
+                elif img_type == 1:
+                    data = await self._mashi_repo.get_composite(wallet, img_type=img_type, mint=1, is_test=True)
+                    ext = ".gif"
+                else:
+                    data = await self._mashi_repo.get_composite(wallet, img_type=img_type, mint=1, is_test=True)
+                    ext = ".webp"
+
                 if data:
-                    if not isinstance(data, (bytes, io.BytesIO)):
-                        msg = getattr(data, 'error_msg', "Unknown error")
-                        await interaction.followup.send(msg, ephemeral=True)
+                    if type(data) is not bytes:
+                        msg = data.error_msg
+                        msg_data = data.data
+
+                        if msg_data:
+                            channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
+                            await channel.send(data)
+
+                        await interaction.followup.send(
+                            msg,
+                            ephemeral=True
+                        )
                         return
 
-                    buffer = io.BytesIO(data)
-                    buffer.seek(0)
+                    buffer = BytesIO(data)
+                    file = discord.File(fp=buffer, filename=f"composite{ext}")
 
-                    file_ext = "gif" if type == 0 else "webp"
-                    file = discord.File(fp=buffer, filename=f"mashi_composite.{file_ext}")
-                    embed = discord.Embed(
-                        title=f"{interaction.user.display_name}'s Mashi",
-                        color=discord.Color.green()
-                    )
-                    embed.set_image(url=f"attachment://mashi_composite.{file_ext}")
+                    embed = discord.Embed(title=f"{interaction.user.display_name}'s Mashi", color=discord.Color.green())
+                    embed.set_image(url=f"attachment://composite{ext}")
 
-                    await interaction.followup.send(embed=embed, file=file)
+                    await interaction.followup.send(embed=embed, file=file, ephemeral=False)
                     return
 
             await interaction.followup.send(
@@ -170,53 +204,6 @@ class MashiModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
-
-    # @app_commands.command(name="test_mashi", description="Get test mashup")
-    # @app_commands.choices(type=[
-    #     app_commands.Choice(name="GIF", value=0),
-    #     app_commands.Choice(name="WEBP", value=1),
-    # ])
-    # async def test_mashi(self, interaction: discord.Interaction, type: int = 0):
-    #     try:
-    #
-    #         await interaction.response.defer(ephemeral=False)
-    #
-    #         id = interaction.user.id
-    #         wallet = self._mashers_dao.get_wallet(id)
-    #         if wallet:
-    #             data = await self._mashi_repo.get_composite(wallet, is_animated=True, img_type=type, is_test = True)
-    #             if data:
-    #                 if not isinstance(data, (bytes, io.BytesIO)):
-    #                     msg = getattr(data, 'error_msg', "Unknown error")
-    #                     await interaction.followup.send(msg, ephemeral=True)
-    #                     return
-    #
-    #                 buffer = io.BytesIO(data)
-    #                 buffer.seek(0)
-    #
-    #                 file_ext = "gif" if type == 0 else "webp"
-    #                 file = discord.File(fp=buffer, filename=f"mashi_composite.{file_ext}")
-    #                 embed = discord.Embed(
-    #                     title=f"{interaction.user.display_name}'s Mashi",
-    #                     color=discord.Color.green()
-    #                 )
-    #                 embed.set_image(url=f"attachment://mashi_composite.{file_ext}")
-    #
-    #                 await interaction.followup.send(embed=embed, file=file)
-    #                 return
-    #
-    #         await interaction.followup.send(
-    #             f"/connect_wallet command",
-    #             ephemeral=True
-    #         )
-    #
-    #     except Exception as e:
-    #         channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
-    #         await channel.send(f"/mashi: {e}")
-    #         await interaction.followup.send(
-    #             "Something went wrong",
-    #             ephemeral=True
-    #         )
 
 async def setup(bot):
     await bot.add_cog(MashiModule(bot))

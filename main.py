@@ -6,6 +6,9 @@ from data.db import db
 from server.http_server import http_app
 from server.server import app
 
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 def start_uvicorn():
     uvicorn.run(

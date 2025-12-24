@@ -79,8 +79,7 @@ async def get_combined_anim(
         sorted_traits: list,
         bg_size=(552, 736),
         overlay_size=(380, 600),
-        type: int = 0,
-        is_test=False,
+        img_type: int = 0,
         is_minted=False
 ):
     try:
@@ -104,7 +103,7 @@ async def get_combined_anim(
         # 4. Save with "Complete Redraw" (Disposal Method 2)
         animated_bytes = io.BytesIO()
 
-        if type == 0:  # GIF
+        if img_type == 1:  # GIF
             # disposal=2 is key: it tells the player to clear the canvas before the next frame
             pil_frames[0].save(
                 animated_bytes,

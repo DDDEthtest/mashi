@@ -9,6 +9,7 @@ from utils.helpers.combiners.anim_combiner import get_combined_anim
 from utils.helpers.combiners.combiner import get_combined_img_bytes
 from utils.helpers.generator import generate_minted_svg
 from utils.helpers.svg.svg_helper import replace_colors, is_svg
+from utils.io.test_data_io import get_test_mashi_data
 
 layer_order = [
     "background",
@@ -84,12 +85,11 @@ class MashiRepo:
 
         return nft_name
 
-    async def get_composite(self, wallet: str, mint: int | None = None, is_test = False, is_animated: bool = False,
-                            img_type: int = 0) -> str | MashupError:
+    async def get_composite(self, wallet: str, mint: int | None = None, is_test = False, img_type: int = 0) -> str | MashupError:
         mashup = None
         try:
             if is_test:
-                mashup = self._mashi_api.simulate_mashi_data()
+                mashup = get_test_mashi_data()
             else:
                 mashup = self._mashi_api.get_mashi_data(wallet)
             assets = mashup.get("assets", [])
@@ -100,11 +100,14 @@ class MashiRepo:
 
             nft_name = None
             if mint:
-                check_res = self._check_mint_ownership(wallet, assets, mint)
-                if type(check_res) is not str:
-                    return check_res
+                if not is_test:
+                    check_res = self._check_mint_ownership(wallet, assets, mint)
+                    if type(check_res) is not str:
+                        return check_res
 
-                nft_name = check_res
+                    nft_name = check_res
+                if is_test:
+                    nft_name = "For testing purpose"
 
             # get assets in parallel
             tasks = [asyncio.to_thread(self._get_asset, asset, colors) for asset in assets]
@@ -122,17 +125,16 @@ class MashiRepo:
             if mint:
                 ordered_traits.append(generate_minted_svg(nft_name))
 
-            if is_animated:
-                png_bytes = await get_combined_anim(
-                    ordered_traits,
-                    is_minted=bool(mint),
-                    type=img_type,
-                    is_test=is_test
-                )
-            else:
+            if img_type == 0:
                 png_bytes = get_combined_img_bytes(
                     ordered_traits,
                     is_minted=bool(mint),
+                )
+            else:
+                png_bytes = await get_combined_anim(
+                    ordered_traits,
+                    is_minted=bool(mint),
+                    img_type=img_type,
                 )
 
             if png_bytes:

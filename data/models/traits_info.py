@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 
-from data.models.image_format import ImageFormat
-
 
 @dataclass
 class TraitsInfo:
