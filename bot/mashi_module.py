@@ -137,14 +137,14 @@ class MashiModule(commands.Cog):
                 ephemeral=True
             )
 
-    @app_commands.command(name="test_mashi", description="Get test mashup")
+    @app_commands.command(name="for_testing_purpose", description="Get test mashup")
     @app_commands.describe(img_type="Static/Animated")
     @app_commands.choices(img_type=[
         app_commands.Choice(name="Static", value=0),
         app_commands.Choice(name="GIF", value=1),
         app_commands.Choice(name="WEBP", value=2),
     ])
-    async def test_mashi(self, interaction: discord.Interaction, img_type: int = 0):
+    async def for_testing_purpose(self, interaction: discord.Interaction, img_type: int = 0):
         try:
             if int(interaction.channel_id) != int(TEST_CHANNEL_ID):
                 await interaction.response.send_message(
