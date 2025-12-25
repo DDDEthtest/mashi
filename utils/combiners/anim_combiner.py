@@ -110,7 +110,7 @@ async def get_combined_anim(
                 format='GIF',
                 save_all=True,
                 append_images=pil_frames[1:],
-                duration=100,
+                duration=ANIM_STEP*1000,
                 loop=0,
                 disposal=2,
                 optimize=False
@@ -121,7 +121,7 @@ async def get_combined_anim(
                 format='WEBP',
                 save_all=True,
                 append_images=pil_frames[1:],
-                duration=100,
+                duration=ANIM_STEP*1000,
                 loop=0,
                 lossless=True,
                 method=6,
