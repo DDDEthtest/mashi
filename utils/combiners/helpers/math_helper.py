@@ -2,7 +2,7 @@ import math
 from functools import reduce
 from typing import Union
 
-from utils.helpers.constants import ANIM_STEP
+from utils.constants import ANIM_STEP
 
 Number = Union[int, float]
 

@@ -1,11 +1,11 @@
 import asyncio
 
 from data.models.traits_info import TraitsInfo
-from utils.helpers.apng.apng_helper import get_apng_info, is_apng
-from utils.helpers.constants import ANIM_STEP
-from utils.helpers.gif.gif_helper import is_gif, get_gif_info
-from utils.helpers.math_helper import correct_timing
-from utils.helpers.webp.webp_helper import is_webp, get_webp_info
+from utils.combiners.modules.apng_module import get_apng_info, is_apng
+from utils.constants import ANIM_STEP
+from utils.combiners.modules.gif_module import is_gif, get_gif_info
+from utils.combiners.helpers.math_helper import correct_timing
+from utils.combiners.modules.webp_module import is_webp, get_webp_info
 
 async def process_trait(trait):
     if is_apng(trait):

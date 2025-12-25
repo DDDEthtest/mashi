@@ -3,13 +3,13 @@ import io
 
 from PIL import Image
 
-from utils.helpers.apng.apng_helper import get_apng_frames_as_bytes, is_apng
-from utils.helpers.constants import ANIM_STEP
-from utils.helpers.gif.gif_helper import is_gif, get_gif_frames_as_bytes
-from utils.helpers.math_helper import lcm_of_list
-from utils.helpers.traits_helper import get_traits_info
-from utils.helpers.combiners.combiner import get_combined_img_bytes
-from utils.helpers.webp.webp_helper import get_webp_frames_as_bytes
+from utils.combiners.modules.apng_module import get_apng_frames_as_bytes, is_apng
+from utils.constants import ANIM_STEP
+from utils.combiners.modules.gif_module import is_gif, get_gif_frames_as_bytes
+from utils.combiners.helpers.math_helper import lcm_of_list
+from utils.combiners.helpers.traits_helper import get_traits_info
+from utils.combiners.combiner import get_combined_img_bytes
+from utils.combiners.modules.webp_module import get_webp_frames_as_bytes
 
 
 async def process_trait_frames(index, sorted_traits, trait_info, total_t_lcm):

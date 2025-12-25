@@ -2,9 +2,9 @@
 
 from PIL import Image
 
-from utils.helpers.gif.gif_helper import extract_first_gif_frame, is_gif
-from utils.helpers.svg.svg_helper import svg_bytes_to_img, is_svg
-from utils.helpers.webp.webp_helper import is_webp, extract_first_webp_frame
+from utils.combiners.modules.gif_module import extract_first_gif_frame, is_gif
+from utils.combiners.modules.svg_module import svg_bytes_to_img, is_svg
+from utils.combiners.modules.webp_module import is_webp, extract_first_webp_frame
 
 resample_mode = Image.Resampling.LANCZOS
 

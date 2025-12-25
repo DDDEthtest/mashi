@@ -5,10 +5,10 @@ from data.models.mashup_error import MashupError
 from data.remote.alchemy_api import AlchemyApi
 from data.remote.images_api import ImagesApi
 from data.remote.mashi_api import MashiApi
-from utils.helpers.combiners.anim_combiner import get_combined_anim
-from utils.helpers.combiners.combiner import get_combined_img_bytes
-from utils.helpers.generator import generate_minted_svg
-from utils.helpers.svg.svg_helper import replace_colors, is_svg
+from utils.combiners.anim_combiner import get_combined_anim
+from utils.combiners.combiner import get_combined_img_bytes
+from utils.combiners.helpers.mint_helper import generate_minted_svg
+from utils.combiners.modules.svg_module import replace_colors, is_svg
 from utils.io.test_data_io import get_test_mashi_data
 
 layer_order = [
