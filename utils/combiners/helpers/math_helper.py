@@ -45,6 +45,7 @@ def correct_timing(frame_t: float) -> float:
     if frame_t < ANIM_STEP:
         return ANIM_STEP
     else:
+
         mod = frame_t % ANIM_STEP
 
         addition = 0

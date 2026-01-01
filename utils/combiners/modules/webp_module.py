@@ -1,6 +1,7 @@
 import io
-from typing import Tuple, List
+from typing import Tuple
 
+import imageio
 from PIL import Image, ImageSequence
 
 
@@ -30,21 +31,27 @@ def extract_first_webp_frame(webp_bytes: bytes) -> bytes:
         return b""
 
 
-def get_webp_info(image_bytes: bytes) -> Tuple[int, float]:
+def get_webp_info(image_bytes: bytes) -> tuple[int, float]:
     """
-    Returns number of frames and total duration in seconds for a WebP.
+    Improved detection of WebP frames and duration.
     """
     with Image.open(io.BytesIO(image_bytes)) as im:
         num_frames = getattr(im, "n_frames", 1)
-        total_duration = 0.0
+        total_duration_ms = 0
 
         for i in range(num_frames):
             im.seek(i)
-            # duration is in milliseconds
-            frame_duration = im.info.get("duration", 0)
-            total_duration += frame_duration / 1000.0
+            # WebP duration is in milliseconds.
+            # If 'duration' is missing, it defaults to 0,
+            # but standard players usually treat < 10ms as 100ms.
+            d = im.info.get("duration", 0)
 
-    return num_frames, total_duration
+            if d == 0 and num_frames > 1:
+                d = 100  # Default fallback for animations
+
+            total_duration_ms += d
+
+    return num_frames, total_duration_ms / 1000.0
 
 
 def get_webp_frames_as_bytes(data_bytes):

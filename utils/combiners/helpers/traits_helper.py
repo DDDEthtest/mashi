@@ -34,7 +34,7 @@ async def process_trait(trait):
         frame_t = correct_timing(total_duration / num_frames)
         total_duration = round(frame_t * num_frames, 2)
         return TraitsInfo(
-            frames=1,
+            frames=num_frames,
             frame_t=frame_t,
             total_t=total_duration,
             is_animated=True
@@ -45,7 +45,7 @@ async def process_trait(trait):
         frame_t = correct_timing(total_duration / num_frames)
         total_duration = round(frame_t * num_frames, 2)
         return TraitsInfo(
-            frames=1,
+            frames=num_frames,
             frame_t=frame_t,
             total_t=total_duration,
             is_animated=True

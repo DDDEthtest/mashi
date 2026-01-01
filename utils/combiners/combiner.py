@@ -19,6 +19,10 @@ def get_combined_img_bytes(
         if not sorted_traits:
             raise ValueError("No traits found")
 
+        for trait in sorted_traits:
+            if not isinstance(trait, bytes):
+                raise ValueError(f"Expected a byte object, got {type(trait)}")
+
         for index, trait in enumerate(sorted_traits):
             if is_gif(trait):
                 sorted_traits[index] = extract_first_gif_frame(trait)

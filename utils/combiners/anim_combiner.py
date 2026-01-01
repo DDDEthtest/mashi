@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import io
+from math import floor, ceil
 
 from PIL import Image
 
@@ -36,8 +37,11 @@ async def run_in_limited_thread(func, *args, **kwargs):
 # FRAME EXTRACTION PER TRAIT
 # ============================================================
 
-async def process_trait_frames(index, sorted_traits, trait_info, total_t_lcm):
+async def process_trait_frames(index, sorted_traits, trait_info, total_t_lcm, new_t_lcm):
     trait = sorted_traits[index]
+    max_frames = int(total_t_lcm / ANIM_STEP)
+    if new_t_lcm != 0.0:
+        max_frames = int(new_t_lcm / ANIM_STEP)
 
     if trait_info.is_animated:
         if is_apng(trait):
@@ -64,16 +68,20 @@ async def process_trait_frames(index, sorted_traits, trait_info, total_t_lcm):
 
     # Extend frames to match total LCM duration
     if total_t_lcm > trait_info.total_t:
-        repeat_factor = round(total_t_lcm / trait_info.total_t)
-        img_frames *= repeat_factor
+        repeat_factor = ceil(total_t_lcm / trait_info.total_t)
+        for i in range(repeat_factor):
+            img_frames.extend(img_frames)
+            if len(img_frames) >= max_frames:
+                img_frames = img_frames[:max_frames]
+                return img_frames
 
     return img_frames
 
 
-async def generate_frames(sorted_traits, traits_info, total_t_lcm):
+async def generate_frames(sorted_traits, traits_info, total_t_lcm, new_t_lcm):
     tasks = [
         process_trait_frames(
-            i, sorted_traits, traits_info[i], total_t_lcm
+            i, sorted_traits, traits_info[i], total_t_lcm, new_t_lcm
         )
         for i in range(len(sorted_traits))
     ]
@@ -84,51 +92,54 @@ async def generate_frames(sorted_traits, traits_info, total_t_lcm):
 # FRAME COMPOSITING
 # ============================================================
 
-async def process_frame(
-    i,
-    num_layers,
-    imgs_frames,
-    bg_size,
-    overlay_size,
-    is_minted,
-):
-    current_layers = [imgs_frames[j][i] for j in range(num_layers)]
+async def process_frame(i, num_layers, imgs_frames, bg_size, overlay_size, is_minted):
+    current_layers = []
 
-    combined_png_bytes = await run_in_limited_thread(
+    # Check if imgs_frames[j][i] is of the expected type
+    for j in range(num_layers):
+        layer = imgs_frames[j][i]
+        if isinstance(layer, bytes):
+            current_layers.append(layer)
+        else:
+            print(f"Warning: Expected bytes, but found {type(layer)} for imgs_frames[{j}][{i}]")
+            # If not bytes, handle the conversion here or raise an error
+            #current_layers.append(convert_to_bytes(layer))
+
+    # Proceed with combined image creation
+    combined_png_bytes = await asyncio.to_thread(
         get_combined_img_bytes,
         current_layers,
         bg_size=bg_size,
         overlay_size=overlay_size,
-        is_minted=is_minted,
+        is_minted=is_minted
     )
-
-    frame_img = await run_in_limited_thread(
-        lambda: Image.open(io.BytesIO(combined_png_bytes)).convert("RGBA")
+    frame_img = await asyncio.to_thread(
+        Image.open, io.BytesIO(combined_png_bytes)
     )
-
+    frame_img = frame_img.convert("RGBA")
     return frame_img
 
 
-async def process_all_frames(
-    num_frames,
-    num_layers,
-    imgs_frames,
-    bg_size,
-    overlay_size,
-    is_minted,
-):
-    tasks = [
-        process_frame(
-            i,
-            num_layers,
-            imgs_frames,
-            bg_size,
-            overlay_size,
-            is_minted,
-        )
-        for i in range(num_frames)
-    ]
-    return await asyncio.gather(*tasks)
+async def process_all_frames(num_frames, num_layers, imgs_frames, bg_size, overlay_size, is_minted):
+    try:
+        # Create a list of tasks for all frames
+        tasks = [
+            process_frame(i, num_layers, imgs_frames, bg_size, overlay_size, is_minted)
+            for i in range(num_frames)
+        ]
+
+        # Gather the results asynchronously
+        pil_frames = await asyncio.gather(*tasks)
+
+        # Filter out any failed frames (None) from the list
+        pil_frames = [frame for frame in pil_frames if frame is not None]
+
+        return pil_frames
+
+    except Exception as e:
+        print(f"Error processing all frames: {e}")
+        return []
+
 
 
 # ============================================================
@@ -152,12 +163,14 @@ async def get_combined_anim(
         # 1. Get timing info
         traits_info, total_ts = await get_traits_info(sorted_traits)
         total_t_lcm = lcm_of_list(total_ts)
-        if total_t_lcm > 5.0:
-            total_t_lcm = max(total_ts) * 2
+
+        new_t_lcm = 0.0
+        if total_t_lcm > 4.2:
+            new_t_lcm = max(total_ts) * 2
 
         # 2. Expand trait frames to LCM duration
         imgs_frames = await generate_frames(
-            sorted_traits, traits_info, total_t_lcm
+            sorted_traits, traits_info, total_t_lcm, new_t_lcm
         )
 
         num_frames = len(imgs_frames[0])
