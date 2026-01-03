@@ -4,6 +4,8 @@ import os
 
 import httpx
 
+from utils.combiners.helpers.traits_helper import get_traits_info
+
 # 1. Initialize the Semaphore globally to limit concurrency to 2
 process_limit = asyncio.Semaphore(2)
 
@@ -59,17 +61,23 @@ class GifService:
                 raise Exception(f"Failed to start Node service: {err.decode()}")
 
     async def create_gif(self, trait_buffers: list):
-        """Queues and executes GIF generation."""
         if not self._is_ready:
             await self.start()
 
+        total_ts = await get_traits_info(trait_buffers)
+        max_t = max(total_ts)
+
         async with self.semaphore:
-            # Prepare Data URIs
-            payload = []
+            images = []
             for buf in trait_buffers:
                 mime = get_mime_type(buf)
-                b64 = base64.b64encode(buf).decode('utf-8')
-                payload.append(f"data:{mime};base64,{b64}")
+                b64 = base64.b64encode(buf).decode("utf-8")
+                images.append(f"data:{mime};base64,{b64}")
+
+            payload = {
+                "images": images,
+                "max_t": max_t,  # 👈 pass timing info
+            }
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 try:
@@ -79,11 +87,5 @@ class GifService:
                     print(f"❌ Service Error: {response.status_code}")
                 except Exception as e:
                     print(f"❌ Connection Error: {e}")
-                return None
 
-    def stop(self):
-        """Kills the background Node process."""
-        if self.process:
-            self.process.terminate()
-            self._is_ready = False
-            print("🛑 Singleton GifService: Stopped.")
+            return None
