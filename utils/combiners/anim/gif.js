@@ -102,7 +102,7 @@ async function generateGif(imageUrls, maxT) {
 
     try {
         // Generate Palette
-        execSync(`ffmpeg -y -i "${path.join(framesDir, 'frame_000.png')}" -vf "palettegen=max_colors=128" "${palettePath}"`);
+        execSync(`ffmpeg -y -i "${path.join(framesDir, 'frame_000.png')}" -vf "palettegen=max_colors=256" "${palettePath}"`);
         // Generate Final GIF
         execSync(`ffmpeg -y -framerate ${playbackFps} -i "${framesDir}/frame_%03d.png" -i "${palettePath}" -filter_complex "[0:v]paletteuse=dither=none" "${gifPath}"`);
 

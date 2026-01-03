@@ -7,7 +7,7 @@ import httpx
 from utils.combiners.helpers.traits_helper import get_traits_info
 
 # 1. Initialize the Semaphore globally to limit concurrency to 2
-process_limit = asyncio.Semaphore(2)
+process_limit = asyncio.Semaphore(5)
 
 
 def get_mime_type(data: bytes) -> str:
@@ -76,7 +76,7 @@ class GifService:
 
             payload = {
                 "images": images,
-                "max_t": max_t,  # 👈 pass timing info
+                "max_t": max_t * 2,  # 👈 pass timing info
             }
 
             async with httpx.AsyncClient(timeout=120.0) as client:
