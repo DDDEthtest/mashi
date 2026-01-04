@@ -1,6 +1,6 @@
 import asyncio
 
-from data.db.daos.mashers_dao import MashersDao
+from data.firebase.mashers_dao import MashersDao
 from data.models.mashup_error import MashupError
 from data.remote.alchemy_api import AlchemyApi
 from data.remote.images_api import ImagesApi
@@ -125,7 +125,7 @@ class MashiRepo:
             elif img_type == 1:
                 png_bytes = await GifService.get_instance().create_gif(ordered_traits)
             else:
-                png_bytes = await GifService.get_instance().create_gif(ordered_traits, length=2)
+                png_bytes = await GifService.get_instance().create_gif(ordered_traits, loops=2)
 
             if png_bytes:
                 return png_bytes

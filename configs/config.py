@@ -1,5 +1,8 @@
 from dotenv import load_dotenv
 import os
+from firebase_admin import credentials
+
+from main import PROJECT_ROOT
 
 load_dotenv()
 
@@ -8,6 +11,10 @@ HTTP_PORT=80
 HTTPS_PORT=443
 
 #db
+CRED_PATH = PROJECT_ROOT / "firebase_cred.json"
+FIREBASE_CRED = credentials.Certificate(CRED_PATH)
+COLLECTION_NAME = "discord-bot"
+
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")

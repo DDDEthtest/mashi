@@ -28,7 +28,7 @@ class GifService:
             cls._instance = cls()
         return cls._instance
 
-    async def create_gif(self, traits_bytes: list, length=1):
+    async def create_gif(self, traits_bytes: list, loops=1):
         gif_bytes = None
         id_dir = TEMP_DIR / str(uuid.uuid4())
         total_ts = await get_traits_info(traits_bytes)
@@ -45,7 +45,7 @@ class GifService:
 
             payload = {
                 "temp_dir": str(id_dir),
-                "max_t": max_t * length,
+                "max_t": max_t * loops,
             }
 
             async with httpx.AsyncClient(timeout=120.0) as client:

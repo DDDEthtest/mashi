@@ -1,4 +1,3 @@
-import io
 from io import BytesIO
 
 import discord
@@ -6,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from configs.config import TEST_CHANNEL_ID
-from data.db.daos.mashers_dao import MashersDao
+from data.firebase.mashers_dao import MashersDao
 from data.remote.mashi_api import MashiApi
 from data.repos.mashi_repo import MashiRepo
 
@@ -37,7 +36,7 @@ class MashiModule(commands.Cog):
                 )
                 return
 
-            is_another_user_wallet = self._mashers_dao.get_user_by_wallet(wallet) is not None
+            is_another_user_wallet = self._mashers_dao.check_if_wallet_taken(wallet)
             if is_another_user_wallet:
                 await interaction.response.send_message(
                     "Wallet already taken",
