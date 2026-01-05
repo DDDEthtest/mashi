@@ -10,10 +10,10 @@ load_dotenv()
 #server
 HTTP_PORT=80
 HTTPS_PORT=443
-
+GIF_LOCAL_SERVER_PORT = 3000
 
 #db
-CRED_PATH = PROJECT_ROOT / "firebase_cred.json"
+CRED_PATH = PROJECT_ROOT / os.getenv("FIREBASE_CRED_FILE_NAME")
 FIREBASE_CRED = credentials.Certificate(CRED_PATH)
 COLLECTION_NAME = "discord-bot"
 
@@ -24,9 +24,6 @@ TEST_CHANNEL_ID = os.getenv("TEST_CHANNEL_ID")
 #roles
 NEW_RELEASES_ROLE_ID = os.getenv("NEW_RELEASES_ROLE_ID")
 
-#routes
-NOTIFY_API_ROUTE = os.getenv("NOTIFY_API_ROUTE")
-
 #apis
 ALCHEMY_API_KEY = os.getenv("ALCHEMY_API_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -35,7 +32,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 #gif
 MAX_GIF_GENERATIONS_AT_TIME = 4
-GIF_MAKER_SERVER_URI = "http://localhost:3000"
+GIF_MAKER_SERVER_URI = f"http://localhost:{GIF_LOCAL_SERVER_PORT}"
 ANIM_STEP = 0.03
 
 #png
