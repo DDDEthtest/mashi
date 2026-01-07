@@ -55,7 +55,7 @@ async def get_mashup(wallet: str, img_type: int = 0):
     return StreamingResponse(buffer, media_type=media_type)
 
 
-def start_https_server():
+def start_http_server():
     uvicorn.run(
         app,
         host="0.0.0.0",
