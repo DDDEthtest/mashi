@@ -8,8 +8,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv()
 
 #server
-HTTP_PORT=80
-GIF_LOCAL_SERVER_PORT = 3000
+HTTP_PORT=3000
+GIF_LOCAL_SERVER_PORT = 3001
 
 #db
 CRED_PATH = PROJECT_ROOT / os.getenv("FIREBASE_CRED_FILE_NAME")

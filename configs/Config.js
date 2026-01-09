@@ -1,5 +1,5 @@
 // Local server
-const PORT = 3000;
+const PORT = 3001;
 
 // GIFs
 const defaultGifWidth = 552;
