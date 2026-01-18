@@ -1,13 +1,12 @@
 import asyncio
 
-from servers.bot_server import start_http_server
+from bot.bot import MashiBot
+from configs.config import DISCORD_TOKEN
 
 
 async def main():
-    server_task = asyncio.to_thread(start_http_server)
-
-    await asyncio.gather(server_task)
-
+    bot = MashiBot()
+    await asyncio.create_task(bot.start(DISCORD_TOKEN))
 
 if __name__ == '__main__':
     asyncio.run(main())

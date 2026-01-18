@@ -51,7 +51,7 @@ class GifService:
                 "max_t": max_t * loops,
             }
 
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            async with httpx.AsyncClient(timeout=360.0) as client:
                 try:
                     response = await client.post(GIF_MAKER_SERVER_URI, json=payload)
                     if response.status_code == 200:

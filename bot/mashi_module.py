@@ -17,68 +17,11 @@ class MashiModule(commands.Cog):
         _mashi_api = MashiApi()
         self._mashi_repo = MashiRepo.instance()
 
-    @app_commands.command(name="connect_wallet", description="Connect wallet")
-    @app_commands.describe(wallet="Wallet")
-    async def connect_wallet(self, interaction: discord.Interaction, wallet: str):
-        try:
-            if len(wallet) != 42:
-                await interaction.response.send_message(
-                    "Invalid wallet",
-                    ephemeral=True
-                )
-                return
-
-            has_wallet = self._mashers_dao.get_wallet(interaction.user.id) is not None
-            if has_wallet:
-                await interaction.response.send_message(
-                    "You have wallet",
-                    ephemeral=True
-                )
-                return
-
-            is_another_user_wallet = self._mashers_dao.check_if_wallet_taken(wallet)
-            if is_another_user_wallet:
-                await interaction.response.send_message(
-                    "Wallet already taken",
-                    ephemeral=True
-                )
-                return
-
-            self._mashers_dao.connect_wallet(interaction.user.id, wallet.lower())
-            await interaction.response.send_message(
-                "Wallet connected",
-                ephemeral=True
-            )
-
-        except Exception as e:
-            print(e)
-            await interaction.response.send_message(
-                "Something went wrong",
-                ephemeral=True
-            )
-
-    @app_commands.command(name="disconnect_wallet", description="Disconnect wallet")
-    async def disconnect_wallet(self, interaction: discord.Interaction):
-        try:
-            self._mashers_dao.disconnect_wallet(interaction.user.id)
-            await interaction.response.send_message(
-                "Wallet disconnected",
-                ephemeral=True
-            )
-
-        except Exception as e:
-            print(e)
-            await interaction.response.send_message(
-                "Something went wrong",
-                ephemeral=True
-            )
-
-    @app_commands.command(name="mashi", description="Get mashup")
+    @app_commands.command(name="better_mashi", description="Get mashup")
     @app_commands.describe(img_type="Static/Animated", mint="#Mint")
     @app_commands.choices(img_type=[
         app_commands.Choice(name="Static", value=0),
-        app_commands.Choice(name="Shorter GIF", value=1),
-        app_commands.Choice(name="Longer GIF", value=2)
+        app_commands.Choice(name="GIF", value=1),
     ])
     async def mashi(self, interaction: discord.Interaction, img_type: int = 0, mint: int | None = None):
         try:
@@ -114,7 +57,7 @@ class MashiModule(commands.Cog):
                     embed = discord.Embed(title=f"{interaction.user.display_name}'s Mashi", color=discord.Color.green())
                     embed.set_image(url=f"attachment://composite{ext}")
 
-                    await interaction.followup.send(embed=embed, file=file, ephemeral=False)
+                    await interaction.followup.send(content=interaction.user.mention, embed=embed, file=file, ephemeral=False)
                     return
 
             await interaction.followup.send(
