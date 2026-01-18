@@ -18,7 +18,7 @@ class MashiModule(commands.Cog):
         self._mashi_repo = MashiRepo.instance()
 
     @app_commands.command(name="better_mashi", description="Get mashup")
-    @app_commands.describe(img_type="Static/Animated", mint="#Mint")
+    @app_commands.describe(img_type="Static/Animated")
     @app_commands.choices(img_type=[
         app_commands.Choice(name="Static", value=0),
         app_commands.Choice(name="GIF", value=1),
