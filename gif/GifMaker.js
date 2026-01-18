@@ -23,9 +23,7 @@ async function startBrowser() {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-frame-rate-limit',
-            '--disable-gpu',
-            "--disable-background-networking",
-            "--disable-extensions"
+            '--disable-gpu'
         ]
     });
 }
@@ -36,8 +34,8 @@ startBrowser();
  * Generates a composited GIF from layered images
  */
 async function generateGif(tempDir, maxT) {
-    if (maxT < 3) {
-        maxT = Math.floor(3 / maxT) * maxT
+    if (maxT < 2) {
+        maxT = Math.floor(2 / maxT) * maxT
     }
 
     const totalFrames = Math.ceil(maxT * captureFps);
