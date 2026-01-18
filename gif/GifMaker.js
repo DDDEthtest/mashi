@@ -35,7 +35,7 @@ startBrowser();
  */
 async function generateGif(tempDir, maxT) {
     if (maxT < 3) {
-        maxT *= 2
+        maxT = Math.ceil(3 / maxT) * maxT
     }
 
     const totalFrames = Math.ceil(maxT * captureFps);
