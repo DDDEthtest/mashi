@@ -34,6 +34,10 @@ startBrowser();
  * Generates a composited GIF from layered images
  */
 async function generateGif(tempDir, maxT) {
+    if (maxT < 3) {
+        maxT = Math.floor(3 / maxT) * maxT
+    }
+
     const totalFrames = Math.ceil(maxT * captureFps);
     const imageUrls = await readFilesAsStrings(tempDir);
     const resourcesDir = tempDir;
