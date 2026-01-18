@@ -23,7 +23,9 @@ async function startBrowser() {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-frame-rate-limit',
-            '--disable-gpu'
+            '--disable-gpu',
+            "--disable-background-networking",
+            "--disable-extensions"
         ]
     });
 }
