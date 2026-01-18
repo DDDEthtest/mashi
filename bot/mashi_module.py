@@ -23,8 +23,9 @@ class MashiModule(commands.Cog):
         app_commands.Choice(name="Static", value=0),
         app_commands.Choice(name="GIF", value=1),
     ])
-    async def mashi(self, interaction: discord.Interaction, img_type: int = 0, mint: int | None = None):
+    async def mashi(self, interaction: discord.Interaction, img_type: int = 0):
         try:
+            mint: int | None = None
             await interaction.response.defer(ephemeral=False)
 
             id = interaction.user.id
