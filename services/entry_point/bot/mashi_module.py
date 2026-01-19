@@ -78,7 +78,6 @@ class MashiModule(commands.Cog):
     @app_commands.choices(img_type=[
         app_commands.Choice(name="PNG", value=0),
         app_commands.Choice(name="GIF", value=1),
-        app_commands.Choice(name="MUCH SLOWER? BETTER! GIF", value=2)
     ])
     async def mashi(self, interaction: discord.Interaction, img_type: int = 0):
         try:
