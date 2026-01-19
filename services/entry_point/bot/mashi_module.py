@@ -4,10 +4,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from services.entry_point.balancer.balancer import Balancer
 from services.entry_point.configs.config import TEST_CHANNEL_ID
 from services.entry_point.data.firebase.mashers_dao import MashersDao
 from services.entry_point.data.remote.mashi_api import MashiApi
-from services.combiner.data.repos.mashi_repo import MashiRepo
 
 
 class MashiModule(commands.Cog):
@@ -15,7 +15,6 @@ class MashiModule(commands.Cog):
         self.bot = bot
         self._mashers_dao = MashersDao()
         _mashi_api = MashiApi()
-        self._mashi_repo = MashiRepo.instance()
 
     @app_commands.command(name="connect_wallet", description="Connect wallet")
     @app_commands.describe(wallet="Wallet")
@@ -81,7 +80,6 @@ class MashiModule(commands.Cog):
     ])
     async def mashi(self, interaction: discord.Interaction, img_type: int = 0):
         try:
-            mint: int | None = None
             await interaction.response.defer(ephemeral=False)
 
             id = interaction.user.id
@@ -92,7 +90,7 @@ class MashiModule(commands.Cog):
                 else:
                     ext = ".gif"
 
-                data = await self._mashi_repo.get_composite(wallet, img_type=img_type, mint=mint)
+                data = await Balancer.instance().get_composite(wallet, img_type=img_type)
                 if data:
                     if type(data) is not bytes:
                         msg = data.error_msg

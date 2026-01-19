@@ -5,9 +5,9 @@ import uvicorn
 from fastapi import FastAPI, Response, status, Request, HTTPException
 from starlette.responses import StreamingResponse
 
+from services.entry_point.balancer.balancer import Balancer
 from services.entry_point.bot.bot import MashiBot
 from services.entry_point.configs.config import DISCORD_TOKEN, HTTP_PORT
-from services.combiner.data.repos.mashi_repo import MashiRepo
 
 app = FastAPI()
 
@@ -36,23 +36,27 @@ async def release_notify(request: Request, response: Response):
 
 
 @app.get("/api/mashi/mashup/{wallet}")
-async def get_mashup(wallet: str, img_type: int = 0):
-    if img_type == 0:
-        media_type = "image/png"
-    else:
-        media_type = "image/gif"
+async def get_mashup(response: Response, wallet: str, img_type: int = 0):
+    try:
+        if img_type == 0:
+            media_type = "image/png"
+        else:
+            media_type = "image/gif"
 
-    if img_type not in range(0, 3):
-        raise HTTPException(status_code=404, detail="Wrong image type")
+        if img_type not in range(0, 3):
+            raise HTTPException(status_code=404, detail="Wrong image type")
 
-    data = await MashiRepo.instance().get_composite(wallet, img_type=img_type)
+        data = await Balancer.instance().get_composite(wallet, img_type=img_type)
 
-    if not data or not isinstance(data, bytes):
-        raise HTTPException(status_code=404, detail="No mashup found for this wallet")
+        if not data or not isinstance(data, bytes):
+            raise HTTPException(status_code=404, detail="No mashup found for this wallet")
 
-    buffer = BytesIO(data)
-    buffer.seek(0)
-    return StreamingResponse(buffer, media_type=media_type)
+        buffer = BytesIO(data)
+        buffer.seek(0)
+        return StreamingResponse(buffer, media_type=media_type)
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"message": e}
 
 
 def start_http_server():

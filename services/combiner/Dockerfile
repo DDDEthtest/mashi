@@ -35,7 +35,7 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy Node.js dependencies first for caching
-COPY ../../package.json ./
+COPY package.json ./
 RUN npm install --unsafe-perm
 
 # Copy Python requirements and install

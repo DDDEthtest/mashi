@@ -61,18 +61,13 @@ class MashiRepo:
             print(e)
             return None
 
-    async def get_composite(self, wallet: str,
-                            img_type: int = 0) -> str | MashupError:
-        mashup = None
+    async def get_composite(self, mashup: dict, img_type = 0) -> str | MashupError:
         try:
-            mashup = self._mashi_api.get_mashi_data(wallet)
             assets = mashup.get("assets", [])
             colors = mashup.get("colors", {})
 
             if not assets:
                 return MashupError(error_msg="No saved mashup")
-
-            nft_name = None
 
             # get assets in parallel
             tasks = [asyncio.to_thread(self._get_asset, asset, colors) for asset in assets]
@@ -90,10 +85,9 @@ class MashiRepo:
                 png_bytes = get_combined_img_bytes(
                     ordered_traits,
                 )
-            elif img_type == 1:
-                png_bytes = await GifService.get_instance().create_gif(ordered_traits)
             else:
-                png_bytes = await GifService.get_instance().create_gif(ordered_traits, loops=2)
+                png_bytes = await GifService.get_instance().create_gif(ordered_traits)
+
 
             if png_bytes:
                 return png_bytes

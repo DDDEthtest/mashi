@@ -1,6 +1,6 @@
 import asyncio
 
-from servers.bot_server import start_http_server
+from servers.gif_server import start_http_server
 
 
 async def main():
