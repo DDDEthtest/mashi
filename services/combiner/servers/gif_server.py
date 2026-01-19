@@ -33,7 +33,7 @@ async def gif(request: Request, response: Response):
 
 
 @app.post("/png")
-async def gif(request: Request, response: Response):
+async def png(request: Request, response: Response):
     try:
         res = await request.json()
         if len(res) == 0:
@@ -55,6 +55,7 @@ async def gif(request: Request, response: Response):
 
 
 def start_http_server():
+    print(GENERATOR_SERVER_PORT)
     uvicorn.run(
         app,
         host="0.0.0.0",

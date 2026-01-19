@@ -1,9 +1,7 @@
 import asyncio
 
-from data.firebase.mashers_dao import MashersDao
 from data.models.mashup_error import MashupError
 from data.remote.images_api import ImagesApi
-from data.remote.mashi_api import MashiApi
 from gif.gif_service import GifService
 from utils.combiner import get_combined_img_bytes
 from utils.modules.svg_module import replace_colors, is_svg
@@ -29,15 +27,11 @@ class MashiRepo:
     @classmethod
     def instance(cls):
         if cls._instance is None:
-            _mashers_dao = MashersDao()
-            _mashi_api = MashiApi()
             _images_api = ImagesApi()
-            cls._instance = MashiRepo(_mashers_dao, _mashi_api, _images_api)
+            cls._instance = MashiRepo(_images_api)
         return cls._instance
 
-    def __init__(self, mashers_dao: MashersDao, mashi_api: MashiApi, images_api: ImagesApi):
-        self._mashers_dao = mashers_dao
-        self._mashi_api = mashi_api
+    def __init__(self, images_api: ImagesApi):
         self._images_api = images_api
 
     def _get_asset(self, asset, colors):
@@ -61,7 +55,7 @@ class MashiRepo:
             print(e)
             return None
 
-    async def get_composite(self, mashup: dict, img_type = 0) -> str | MashupError:
+    async def get_composite(self, mashup: dict, img_type = 0) -> bytes | MashupError:
         try:
             assets = mashup.get("assets", [])
             colors = mashup.get("colors", {})

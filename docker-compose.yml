@@ -13,8 +13,8 @@ services:
       context: ./services/combiner
       dockerfile: Dockerfile
     container_name: combiner
-    expose:
-      - "777"
+    ports:
+      - "777:777"
     restart: unless-stopped
 
   nginx:

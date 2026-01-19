@@ -1,114 +1,82 @@
 import asyncio
-import queue
 import httpx
-
-from configs.config import GENERATOR1_BASE_URL, GENERATOR_PORT, GENERATOR2_BASE_URL, \
-    GENERATOR3_BASE_URL
+from configs.config import GENERATOR1_BASE_URL, GENERATOR_PORT, GENERATOR2_BASE_URL, GENERATOR3_BASE_URL
 from data.remote.mashi_api import MashiApi
 
 
 class Balancer:
     _instance = None
-    png_queue = asyncio.Queue()
-    gif_queue = asyncio.Queue()
 
-    # 1, 2, 3 ... png, gif
-    status = [[False, False], [False, False], [False, False]]
+    def __init__(self):
+        self.png_queue = asyncio.Queue()
+        self.gif_queue = asyncio.Queue()
+        self.mashi_api = MashiApi()
+        self.urls = [GENERATOR1_BASE_URL, GENERATOR2_BASE_URL, GENERATOR3_BASE_URL]
+        # status[server_index][type_index] -> False means available
+        self.status = [[False, False], [False, False], [False, False]]
 
     @classmethod
     def instance(cls):
         if cls._instance is None:
             cls._instance = Balancer()
-            cls.mashi_api = MashiApi()
         return cls._instance
 
     async def get_img(self, payload: dict, post_uri: str, route: str):
-        async with httpx.AsyncClient(timeout=666.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             try:
-                response = await client.post(f"{post_uri}:{GENERATOR_PORT}/{route}", json=payload)
+                response = await client.post(f"http://{post_uri}:{GENERATOR_PORT}/{route}", json=payload)
                 if response.status_code == 200:
                     return await response.aread()
-                else:
-                    print(f"❌ Service Error: {response.status_code}")
             except Exception as e:
                 print(f"❌ Connection Error: {e}")
+        return None
 
-    async def png_worker(self):
+    async def _worker(self, q: asyncio.Queue, type_idx: int, route: str):
         while True:
-            task_data = await self.png_queue.get()
-            payload = task_data.get("payload")
-            callback = task_data.get("callback")
+            # task_data is now a dict containing the payload and a Future
+            task_data = await q.get()
+            payload = task_data["payload"]
+            future = task_data["future"]
 
-            try:
-                if not self.status[task_data[0]][task_data[0]]:
-                    self.status[task_data[0]][task_data[0]] = True
-                    img_bytes = await self.get_img(payload, GENERATOR1_BASE_URL, "png")
-                    self.status[task_data[0]][task_data[0]] = False
-                    await callback(img_bytes)
+            success = False
+            while not success:
+                for i, url in enumerate(self.urls):
+                    if not self.status[i][type_idx]:
+                        self.status[i][type_idx] = True
+                        try:
+                            img_bytes = await self.get_img(payload, url, route)
+                            if img_bytes:
+                                future.set_result(img_bytes)
+                                success = True
+                                break
+                        finally:
+                            self.status[i][type_idx] = False
 
-                if not self.status[task_data[1]][task_data[0]]:
-                    self.status[task_data[1]][task_data[0]] = True
-                    img_bytes = await self.get_img(payload, GENERATOR2_BASE_URL, "png")
-                    self.status[task_data[1]][task_data[0]] = False
-                    await callback(img_bytes)
+                if not success:
+                    await asyncio.sleep(0.5)  # Avoid CPU thrashing if all servers busy
 
-                if not self.status[task_data[2]][task_data[0]]:
-                    self.status[task_data[2]][task_data[0]] = True
-                    img_bytes = await self.get_img(payload, GENERATOR3_BASE_URL, "png")
-                    self.status[task_data[2]][task_data[0]] = False
-                    await callback(img_bytes)
-
-            finally:
-                self.png_queue.task_done()
-
-    async def gif_worker(self):
-        while True:
-            task_data = await self.gif_queue.get()
-            payload = task_data.get("payload")
-            callback = task_data.get("callback")
-
-            try:
-                if not self.status[task_data[0]][task_data[1]]:
-                    self.status[task_data[0]][task_data[1]] = True
-                    img_bytes = await self.get_img(payload, GENERATOR1_BASE_URL, "gif")
-                    self.status[task_data[0]][task_data[1]] = False
-                    await callback(img_bytes)
-
-                if not self.status[task_data[1]][task_data[1]]:
-                    self.status[task_data[1]][task_data[1]] = True
-                    img_bytes = await self.get_img(payload, GENERATOR2_BASE_URL, "gif")
-                    self.status[task_data[1]][task_data[1]] = False
-                    await callback(img_bytes)
-
-                if not self.status[task_data[2]][task_data[1]]:
-                    self.status[task_data[2]][task_data[1]] = True
-                    img_bytes = await self.get_img(payload, GENERATOR3_BASE_URL, "gif")
-                    self.status[task_data[2]][task_data[1]] = False
-                    await callback(img_bytes)
-            finally:
-                self.gif_queue.task_done()
+            q.task_done()
 
     async def start_workers(self):
-        for i in range(3):
-            asyncio.create_task(self.png_worker())
-            asyncio.create_task(self.gif_worker())
+        # Start workers once
+        for _ in range(3):
+            asyncio.create_task(self._worker(self.png_queue, 0, "png"))
+            asyncio.create_task(self._worker(self.gif_queue, 1, "gif"))
 
     async def get_composite(self, wallet: str, img_type: int = 0):
         try:
             data = self.mashi_api.get_mashi_data(wallet)
+            loop = asyncio.get_running_loop()
+            future = loop.create_future()
 
-            async def callback(result):
-                return result
+            task_item = {"payload": data, "future": future}
 
             if img_type == 0:
-                return await self.png_queue.put({
-                    "payload": data,
-                    "callback": callback
-                })
+                await self.png_queue.put(task_item)
             else:
-                return await self.gif_queue.put({
-                    "payload": data,
-                    "callback": callback
-                })
+                await self.gif_queue.put(task_item)
+
+            # This waits for the worker to finish and return the bytes
+            return await future
         except Exception as e:
-            return e
+            print(f"Error in get_composite: {e}")
