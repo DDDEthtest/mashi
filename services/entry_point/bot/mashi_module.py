@@ -1,4 +1,5 @@
 from io import BytesIO
+from os import name
 
 import discord
 from discord import app_commands
@@ -75,8 +76,9 @@ class MashiModule(commands.Cog):
     @app_commands.command(name="mashi", description="Get mashup")
     @app_commands.describe(img_type="Static/Animated")
     @app_commands.choices(img_type=[
-        app_commands.Choice(name="Static", value=0),
-        app_commands.Choice(name="GIF", value=1)
+        app_commands.Choice(name="PNG", value=0),
+        app_commands.Choice(name="GIF", value=1),
+        app_commands.Choice(name="MUCH SLOWER? BETTER! GIF", value=2)
     ])
     async def mashi(self, interaction: discord.Interaction, img_type: int = 0):
         try:

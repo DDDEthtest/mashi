@@ -1,6 +1,7 @@
 import asyncio
 import httpx
-from configs.config import GENERATOR1_BASE_URL, GENERATOR_PORT, GENERATOR2_BASE_URL, GENERATOR3_BASE_URL
+from configs.config import GENERATOR1_BASE_URL, GENERATOR_PORT, GENERATOR2_BASE_URL, GENERATOR3_BASE_URL, \
+    EXTRA_GENERATOR1_BASE_URL, EXTRA_GENERATOR2_BASE_URL
 from data.remote.mashi_api import MashiApi
 
 
@@ -10,10 +11,13 @@ class Balancer:
     def __init__(self):
         self.png_queue = asyncio.Queue()
         self.gif_queue = asyncio.Queue()
+        self.extra_queue = asyncio.Queue()
         self.mashi_api = MashiApi()
         self.urls = [GENERATOR1_BASE_URL, GENERATOR2_BASE_URL, GENERATOR3_BASE_URL]
+        self.extra_urls = [EXTRA_GENERATOR1_BASE_URL, EXTRA_GENERATOR2_BASE_URL]
         # status[server_index][type_index] -> False means available
         self.status = [[False, False], [False, False], [False, False]]
+        self.extra_status = [False, False]
 
     @classmethod
     def instance(cls):
@@ -22,7 +26,7 @@ class Balancer:
         return cls._instance
 
     async def get_img(self, payload: dict, post_uri: str, route: str):
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=1200.0) as client:
             try:
                 response = await client.post(f"http://{post_uri}:{GENERATOR_PORT}/{route}", json=payload)
                 if response.status_code == 200:
@@ -38,8 +42,19 @@ class Balancer:
             payload = task_data["payload"]
             future = task_data["future"]
 
-            success = False
-            while not success:
+            if type_idx == 2:
+                for i, url in enumerate(self.extra_urls):
+                    if not self.extra_status[i]:
+                        self.extra_status[i] = True
+                        try:
+                            img_bytes = await self.get_img(payload, url, route)
+                            if img_bytes:
+                                future.set_result(img_bytes)
+                                break
+                        finally:
+                            q.task_done()
+                            self.extra_status[i] = False
+            else:
                 for i, url in enumerate(self.urls):
                     if not self.status[i][type_idx]:
                         self.status[i][type_idx] = True
@@ -47,21 +62,19 @@ class Balancer:
                             img_bytes = await self.get_img(payload, url, route)
                             if img_bytes:
                                 future.set_result(img_bytes)
-                                success = True
                                 break
                         finally:
+                            q.task_done()
                             self.status[i][type_idx] = False
-
-                if not success:
-                    await asyncio.sleep(0.5)  # Avoid CPU thrashing if all servers busy
-
-            q.task_done()
 
     async def start_workers(self):
         # Start workers once
         for _ in range(3):
             asyncio.create_task(self._worker(self.png_queue, 0, "png"))
             asyncio.create_task(self._worker(self.gif_queue, 1, "gif"))
+
+        for _ in range(2):
+            asyncio.create_task(self._worker(self.extra_queue, 2, "gif"))
 
     async def get_composite(self, wallet: str, img_type: int = 0):
         try:
@@ -73,8 +86,10 @@ class Balancer:
 
             if img_type == 0:
                 await self.png_queue.put(task_item)
-            else:
+            elif img_type == 1:
                 await self.gif_queue.put(task_item)
+            else:
+                await self.extra_queue.put(task_item)
 
             # This waits for the worker to finish and return the bytes
             return await future
