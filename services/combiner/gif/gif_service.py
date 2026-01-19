@@ -4,11 +4,11 @@ import uuid
 
 import httpx
 
-from services.combiner.configs.config import GIF_MAKER_SERVER_URI
-from services.combiner.utils.helpers.mime_type_helper import get_mime_type
-from services.combiner.utils.helpers.traits_helper import get_traits_info
-from services.combiner.utils.io.files import read_file, rm_dir, save_file
-from services.entry_point.configs.config import PROJECT_ROOT
+from configs.config import GIF_MAKER_SERVER_URI
+from utils.helpers.mime_type_helper import get_mime_type
+from utils.helpers.traits_helper import get_traits_info
+from utils.io.files import read_file, rm_dir, save_file
+from configs.config import PROJECT_ROOT
 
 
 class GifService:

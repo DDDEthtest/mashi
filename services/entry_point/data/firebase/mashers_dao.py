@@ -1,5 +1,5 @@
-from services.entry_point.configs.config import COLLECTION_NAME
-from services.entry_point.data.firebase.firestore_db import get_db
+from configs.config import COLLECTION_NAME
+from data.firebase.firestore_db import get_db
 
 
 class MashersDao:

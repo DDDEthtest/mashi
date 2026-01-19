@@ -1,7 +1,7 @@
 import firebase_admin
 from firebase_admin import firestore
 
-from services.entry_point.configs.config import FIREBASE_CRED
+from configs.config import FIREBASE_CRED
 
 class FirestoreDB:
     _instance = None

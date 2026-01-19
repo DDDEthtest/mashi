@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 
-from services.entry_point.bot.message_module import get_notify_embed
-from services.entry_point.configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID
+from bot.message_module import get_notify_embed
+from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID
 
 
 class MashiBot(commands.Bot):

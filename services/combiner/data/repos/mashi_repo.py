@@ -1,12 +1,12 @@
 import asyncio
 
-from services.entry_point.data.firebase.mashers_dao import MashersDao
-from services.combiner.data.models.mashup_error import MashupError
-from services.combiner.data.remote.images_api import ImagesApi
-from services.entry_point.data.remote.mashi_api import MashiApi
-from services.combiner.gif.gif_service import GifService
-from services.combiner.utils.combiner import get_combined_img_bytes
-from services.combiner.utils.modules.svg_module import replace_colors, is_svg
+from data.firebase.mashers_dao import MashersDao
+from data.models.mashup_error import MashupError
+from data.remote.images_api import ImagesApi
+from data.remote.mashi_api import MashiApi
+from gif.gif_service import GifService
+from utils.combiner import get_combined_img_bytes
+from utils.modules.svg_module import replace_colors, is_svg
 
 layer_order = [
     "background",

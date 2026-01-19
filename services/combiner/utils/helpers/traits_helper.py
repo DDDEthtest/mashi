@@ -1,9 +1,9 @@
 import asyncio
 
-from services.entry_point.configs.config import ANIM_STEP
-from services.combiner.utils.modules.apng_module import get_apng_t, is_apng
-from services.combiner.utils.modules.gif_module import is_gif, get_gif_t
-from services.combiner.utils.modules.webp_module import is_webp, get_webp_t
+from configs.config import ANIM_STEP
+from utils.modules.apng_module import get_apng_t, is_apng
+from utils.modules.gif_module import is_gif, get_gif_t
+from utils.modules.webp_module import is_webp, get_webp_t
 
 
 async def process_trait(trait):

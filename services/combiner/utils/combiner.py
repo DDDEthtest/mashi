@@ -1,11 +1,11 @@
 ﻿from PIL import Image
 
 import io
-from services.entry_point.configs.config import DEFAULT_PNG_WIDTH, DEFAULT_PNG_HEIGHT, DEFAULT_TRAIT_HEIGHT, DEFAULT_TRAIT_WIDTH
-from services.combiner.data.models.detailed_trait import DetailedTrait
-from services.combiner.utils.modules.gif_module import extract_first_gif_frame_as_png, is_gif
-from services.combiner.utils.modules.svg_module import svg_bytes_to_png, is_svg
-from services.combiner.utils.modules.webp_module import extract_first_webp_frame_as_png, is_webp
+from configs.config import DEFAULT_PNG_WIDTH, DEFAULT_PNG_HEIGHT, DEFAULT_TRAIT_HEIGHT, DEFAULT_TRAIT_WIDTH
+from data.models.detailed_trait import DetailedTrait
+from utils.modules.gif_module import extract_first_gif_frame_as_png, is_gif
+from utils.modules.svg_module import svg_bytes_to_png, is_svg
+from utils.modules.webp_module import extract_first_webp_frame_as_png, is_webp
 
 resample_mode = Image.Resampling.LANCZOS
 

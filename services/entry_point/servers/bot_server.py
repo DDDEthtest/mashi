@@ -5,9 +5,9 @@ import uvicorn
 from fastapi import FastAPI, Response, status, Request, HTTPException
 from starlette.responses import StreamingResponse
 
-from services.entry_point.balancer.balancer import Balancer
-from services.entry_point.bot.bot import MashiBot
-from services.entry_point.configs.config import DISCORD_TOKEN, HTTP_PORT
+from balancer.balancer import Balancer
+from bot.bot import MashiBot
+from configs.config import DISCORD_TOKEN, HTTP_PORT
 
 app = FastAPI()
 

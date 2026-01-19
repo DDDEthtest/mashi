@@ -1,6 +1,6 @@
-from services.combiner.utils.modules.gif_module import is_gif
-from services.combiner.utils.modules.svg_module import is_svg
-from services.combiner.utils.modules.webp_module import is_webp
+from utils.modules.gif_module import is_gif
+from utils.modules.svg_module import is_svg
+from utils.modules.webp_module import is_webp
 
 
 def get_mime_type(data: bytes) -> str:

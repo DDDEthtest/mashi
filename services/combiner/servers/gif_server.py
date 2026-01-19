@@ -4,8 +4,8 @@ import uvicorn
 from fastapi import FastAPI, Response, status, Request, HTTPException
 from starlette.responses import StreamingResponse
 
-from services.combiner.configs.config import GENERATOR_SERVER_PORT
-from services.combiner.data.repos.mashi_repo import MashiRepo
+from configs.config import GENERATOR_SERVER_PORT
+from data.repos.mashi_repo import MashiRepo
 
 app = FastAPI()
 

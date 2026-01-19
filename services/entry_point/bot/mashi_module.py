@@ -4,10 +4,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from services.entry_point.balancer.balancer import Balancer
-from services.entry_point.configs.config import TEST_CHANNEL_ID
-from services.entry_point.data.firebase.mashers_dao import MashersDao
-from services.entry_point.data.remote.mashi_api import MashiApi
+from balancer.balancer import Balancer
+from configs.config import TEST_CHANNEL_ID
+from data.firebase.mashers_dao import MashersDao
+from data.remote.mashi_api import MashiApi
 
 
 class MashiModule(commands.Cog):

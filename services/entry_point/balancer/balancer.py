@@ -2,9 +2,9 @@ import asyncio
 import queue
 import httpx
 
-from services.entry_point.configs.config import GENERATOR1_BASE_URL, GENERATOR_PORT, GENERATOR2_BASE_URL, \
+from configs.config import GENERATOR1_BASE_URL, GENERATOR_PORT, GENERATOR2_BASE_URL, \
     GENERATOR3_BASE_URL
-from services.entry_point.data.remote.mashi_api import MashiApi
+from data.remote.mashi_api import MashiApi
 
 
 class Balancer:
@@ -14,9 +14,6 @@ class Balancer:
 
     # 1, 2, 3 ... png, gif
     status = [[False, False], [False, False], [False, False]]
-
-    @classmethod
-    def get_instance(cls):
 
     @classmethod
     def instance(cls):

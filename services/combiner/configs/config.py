@@ -1,3 +1,7 @@
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 #server
 GIF_LOCAL_SERVER_PORT = 666
 GENERATOR_SERVER_PORT = 777
