@@ -12,7 +12,9 @@ class Balancer:
         self.gif_queue = asyncio.Queue()
         self.extra_queue = asyncio.Queue()
         self.mashi_api = MashiApi()
-        # status[server_index][type_index] -> False means available
+
+        # Limit to 10 concurrent get_composite calls
+        self._composite_semaphore = asyncio.Semaphore(10)
 
     @classmethod
     def instance(cls):
@@ -23,7 +25,10 @@ class Balancer:
     async def get_img(self, payload: dict, route: str):
         async with httpx.AsyncClient(timeout=120.0) as client:
             try:
-                response = await client.post(f"http://{COMBINER_0_IP}:{GENERATOR_PORT}/{route}", json=payload)
+                response = await client.post(
+                    f"http://{COMBINER_0_IP}:{GENERATOR_PORT}/{route}",
+                    json=payload
+                )
                 if response.status_code == 200:
                     return await response.aread()
             except Exception as e:
@@ -31,13 +36,16 @@ class Balancer:
         return None
 
     async def get_composite(self, wallet: str, img_type: int = 0):
-        try:
-            data = self.mashi_api.get_mashi_data(wallet)
+        # Acquire semaphore to limit concurrency
+        async with self._composite_semaphore:
+            try:
+                data = self.mashi_api.get_mashi_data(wallet)
 
-            if img_type == 0:
-                return await self.get_img(data, "png")
-            elif img_type == 1:
-                return await self.get_img(data, "gif")
+                if img_type == 0:
+                    return await self.get_img(data, "png")
+                elif img_type == 1:
+                    return await self.get_img(data, "gif")
 
-        except Exception as e:
-            print(f"Error in get_composite: {e}")
+            except Exception as e:
+                print(f"Error in get_composite: {e}")
+                return None
