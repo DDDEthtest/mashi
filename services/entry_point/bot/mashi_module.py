@@ -110,7 +110,9 @@ class MashiModule(commands.Cog):
                     buffer = BytesIO(data)
                     file = discord.File(fp=buffer, filename=f"composite{ext}")
 
-                    embed = discord.Embed(title=f"{interaction.user.display_name}'s Mashi", color=discord.Color.green())
+                    color = discord.Color.random()
+
+                    embed = discord.Embed(title=f"{interaction.user.display_name}'s Mashi", color=color)
                     embed.set_image(url=f"attachment://composite{ext}")
 
                     await interaction.followup.send(content=interaction.user.mention, embed=embed, file=file, ephemeral=False)

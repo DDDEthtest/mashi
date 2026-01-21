@@ -1,50 +1,39 @@
-# Base image
-FROM alpine:3.18
+# 1. Use the official Playwright base image (Node.js + Browser Deps included)
+FROM mcr.microsoft.com/playwright:v1.49.0-jammy
 
-# Set environment variables
+# 2. Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV CHROME_BIN=/usr/bin/chromium-browser
+# Ensure Playwright looks for browsers in a standard location
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-# Install system dependencies including Node.js, Python, and Chromium
-RUN apk add --no-cache \
-    bash \
-    curl \
-    wget \
+# 3. Install Python, FFmpeg, and essential build tools
+RUN apt-get update && apt-get install -y \
     python3 \
-    py3-pip \
+    python3-pip \
     ffmpeg \
-    nss \
-    freetype \
-    harfbuzz \
-    ttf-freefont \
-    font-noto \
-    udev \
-    build-base \
-    libffi-dev \
-    zlib-dev \
-    xz-dev \
-    git \
-    nodejs \
-    npm \
-    chromium \
-    && python3 -m ensurepip \
-    && pip3 install --upgrade pip setuptools wheel
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# 4. Set working directory
 WORKDIR /app
 
-# Copy Node.js dependencies first for caching
+# 5. Handle Node.js dependencies
+# We copy package.json first to leverage Docker layer caching
 COPY package.json ./
-RUN npm install --unsafe-perm
+RUN npm install
 
-# Copy Python requirements and install
+# 6. Install ONLY the Chromium browser and its system dependencies
+# This is the "Use its own" part
+RUN npx playwright install chromium --with-deps
+
+# 7. Handle Python dependencies
 COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the app
-COPY ../.. .
+# 8. Copy the rest of the application
+# Ensure your .dockerignore excludes node_modules to avoid conflicts
+COPY . .
 
-# Default command to run both Python and Node.js
-# Make sure Puppeteer uses Chromium installed via apk
+# 9. Final execution command
+# We use bash to orchestrate the parallel execution of your Python and Node services
 CMD ["bash", "-c", "python3 main.py & node Main.js"]

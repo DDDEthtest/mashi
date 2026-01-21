@@ -15,7 +15,6 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup():
     bot = MashiBot()
-    await Balancer.instance().start_workers()
     asyncio.create_task(bot.start(DISCORD_TOKEN))
 
 
