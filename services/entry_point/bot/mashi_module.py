@@ -9,6 +9,7 @@ from balancer.balancer import Balancer
 from configs.config import TEST_CHANNEL_ID
 from data.firebase.mashers_dao import MashersDao
 from data.remote.mashi_api import MashiApi
+from data.remote.discord_api import is_user_subscribed
 
 
 class MashiModule(commands.Cog):
@@ -84,6 +85,8 @@ class MashiModule(commands.Cog):
             await interaction.response.defer(ephemeral=False)
 
             id = interaction.user.id
+            is_dark = is_user_subscribed(id)
+
             wallet = self._mashers_dao.get_wallet(id)
             if wallet:
                 if img_type == 0:
@@ -112,8 +115,14 @@ class MashiModule(commands.Cog):
 
                     color = discord.Color.random()
 
-                    embed = discord.Embed(title=f"{interaction.user.display_name}'s Mashi", color=color)
+                    if is_dark:
+                        footer = "Darth Mashi"
+                    else:
+                        footer = "Mashi"
+
+                    embed = discord.Embed(title=f"{interaction.user.display_name}'s mashup", color=color)
                     embed.set_image(url=f"attachment://composite{ext}")
+                    embed.set_footer(text=footer)
 
                     await interaction.followup.send(content=interaction.user.mention, embed=embed, file=file, ephemeral=False)
                     return
