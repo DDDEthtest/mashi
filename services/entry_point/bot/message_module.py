@@ -44,5 +44,5 @@ Max Per-Wallet: {max_per_wallet}"""
     # composite and footer
     composite_url = assets.get("composite").replace("ipfs://", "https://ipfs.io/ipfs/")
     embed.set_image(url=composite_url)
-    embed.set_footer(text="Mashi")
+    embed.set_footer(text=f"© 2026 mash-it x {artist_name}")
     return embed
