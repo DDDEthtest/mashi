@@ -8,6 +8,9 @@ from starlette.responses import StreamingResponse
 from balancer.balancer import Balancer
 from bot.bot import MashiBot
 from configs.config import DISCORD_TOKEN, HTTP_PORT
+from data.remote.images_api import ImagesApi
+from converters.apng_converter import apng_bytes_to_webp_bytes
+from converters.svg_converter import process_svg
 
 app = FastAPI()
 
@@ -57,6 +60,28 @@ async def get_mashup(response: Response, wallet: str, img_type: int = 0):
     except Exception as e:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"message": e}
+
+@app.get("/api/apng/{image_id}")
+async def get_mashup(image_id: str):
+    try:
+        url = f"https://ipfs.filebase.io/ipfs/{image_id}"
+        apng_bytes = ImagesApi().get_image_src(url)
+        webp_bytes = apng_bytes_to_webp_bytes(apng_bytes)
+        return StreamingResponse(BytesIO(webp_bytes), media_type="image/webp")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Failed to convert image")
+
+@app.get("/api/svg/{image_id}")
+async def get_mashup(image_id: str):
+    try:
+        url = f"https://ipfs.filebase.io/ipfs/{image_id}"
+        svg_bytes = ImagesApi().get_image_src(url)
+        svg_bytes = process_svg(svg_bytes)
+        return StreamingResponse(BytesIO(svg_bytes), media_type="image/svg+xml")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Failed to convert image")
 
 
 def start_http_server():

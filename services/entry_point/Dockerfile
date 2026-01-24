@@ -1,27 +1,21 @@
-# Base image
-FROM alpine:3.18
+FROM python:3.11-slim
 
-# Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Install only the bare essentials for Python and Discord.py
-RUN apk add --no-cache \
-    bash \
-    python3 \
-    py3-pip \
-    libffi-dev \
-    && python3 -m ensurepip \
-    && pip3 install --upgrade pip
+# Install the updated package names for modern Debian
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy Python requirements and install
+# Upgrade pip and install requirements
 COPY requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the app
 COPY . .
 
-# Default command
-CMD ["python3", "main.py"]
+CMD ["python", "main.py"]
