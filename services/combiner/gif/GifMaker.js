@@ -86,7 +86,10 @@ async function generateGif(tempDir, maxT) {
     });
 
     try {
-        if (maxT < 3) maxT = Math.ceil(3 / maxT) * maxT;
+        if (maxT < 5) {
+            maxT = Math.ceil(5 / maxT) * maxT;
+        }
+
         const totalFrames = Math.ceil(maxT * captureFps);
         const imageUrls = await readFilesAsStrings(tempDir);
         const resourcesDir = tempDir;

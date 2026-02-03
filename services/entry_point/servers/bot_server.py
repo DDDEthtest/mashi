@@ -10,7 +10,7 @@ from bot.bot import MashiBot
 from configs.config import DISCORD_TOKEN, HTTP_PORT
 from data.remote.images_api import ImagesApi
 from converters.apng_converter import apng_bytes_to_webp_bytes
-from converters.svg_converter import process_svg
+from converters.svg_ios_converter import process_svg
 
 app = FastAPI()
 
@@ -62,7 +62,7 @@ async def get_mashup(response: Response, wallet: str, img_type: int = 0):
         return {"message": e}
 
 @app.get("/api/apng/{image_id}")
-async def get_mashup(image_id: str):
+async def get_apng(image_id: str):
     try:
         url = f"https://ipfs.filebase.io/ipfs/{image_id}"
         apng_bytes = ImagesApi().get_image_src(url)
@@ -73,7 +73,7 @@ async def get_mashup(image_id: str):
         raise HTTPException(status_code=500, detail="Failed to convert image")
 
 @app.get("/api/svg/{image_id}")
-async def get_mashup(image_id: str):
+async def get_svg(image_id: str):
     try:
         url = f"https://ipfs.filebase.io/ipfs/{image_id}"
         svg_bytes = ImagesApi().get_image_src(url)

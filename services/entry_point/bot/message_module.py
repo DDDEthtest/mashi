@@ -18,15 +18,17 @@ def _generate_assets_links(assets: dict) -> str:
 def get_notify_embed(data: dict) -> discord.Embed:
     # header
     title = data["title"]
-    embed = discord.Embed(title=title, url="https://www.mash-it.io/mashers", color=discord.Color.green())
-
     # details
     artist_name = data["artistName"]
     listing = data.get("listing", {})
 
+    listing_id = listing.get("listingId")
     price = listing["priceMatic"]
     max_supply = listing["maxSupply"]
     max_per_wallet = listing["maxPerWallet"]
+
+    embed = discord.Embed(title=title, url=f"https://mash-it.io/mashers?listing={listing_id}", color=discord.Color.green())
+
 
     details = (
         f"""Artist: {artist_name}
