@@ -10,6 +10,7 @@ from balancer.balancer import Balancer
 from configs.config import TEST_CHANNEL_ID
 from data.firebase.mashers_dao import MashersDao
 from data.remote.mashi_api import MashiApi
+from bot.button import Button
 
 
 class MashiModule(commands.Cog):
@@ -109,6 +110,8 @@ class MashiModule(commands.Cog):
                         )
                         return
 
+                    view = Button(author=interaction.user)
+
                     buffer = BytesIO(data)
                     file = discord.File(fp=buffer, filename=f"composite{ext}")
 
@@ -118,7 +121,7 @@ class MashiModule(commands.Cog):
                     embed.set_image(url=f"attachment://composite{ext}")
                     embed.set_footer(text="© 2026 mash-it")
 
-                    await interaction.followup.send(embed=embed, file=file, ephemeral=False)
+                    await interaction.followup.send(embed=embed, file=file, view=view, ephemeral=False)
                     return
 
             await interaction.followup.send(
