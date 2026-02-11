@@ -119,7 +119,7 @@ class MashiModule(commands.Cog):
 
                     embed = discord.Embed(title=f"{interaction.user.display_name}'s mashup", color=color)
                     embed.set_image(url=f"attachment://composite{ext}")
-                    embed.set_footer(text=f"© 2026 mash-it x {interaction.user.id}")
+                    embed.set_footer(text="© 2026 mash-it")
 
                     await interaction.followup.send(embed=embed, file=file, ephemeral=False)
                     return
@@ -144,11 +144,14 @@ class MashiModule(commands.Cog):
             await interaction.response.defer(ephemeral=True)
 
             message = await interaction.channel.fetch_message(int(msg_id))
+            metadata = message.interaction_metadata
+            user = metadata.user
+            user_id = user.id
 
             is_staff = interaction.user.guild_permissions.administrator or \
                        interaction.user.guild_permissions.manage_messages
 
-            if str(interaction.user.id) in message.embeds[0].footer.text or is_staff:
+            if user_id == interaction.user.id or is_staff:
                 await message.delete()
                 await interaction.followup.send("Mashup was deleted", ephemeral=True)
                 return
