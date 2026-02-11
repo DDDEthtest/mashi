@@ -23,20 +23,3 @@ class MashersDao:
         if results:
             return True
         return False
-
-    def update_reaction_count(self, user_id: int, amount: int):
-        db = get_db()
-        user_ref = db.collection(COLLECTION_NAME).document(str(user_id))
-
-        # 1. Manually get the document
-        doc = user_ref.get()
-
-        current_count = 0
-        if doc.exists:
-            # Get the field, default to 0 if it's missing
-            current_count = doc.to_dict().get("reaction_count", 0)
-
-        # 2. Update it manually
-        user_ref.set({
-            "reaction_count": max(0, current_count + amount)
-        }, merge=True)

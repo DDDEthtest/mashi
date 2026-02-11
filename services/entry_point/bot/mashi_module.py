@@ -5,8 +5,10 @@ from discord import app_commands
 from discord.ext import commands
 
 from balancer.balancer import Balancer
+from bot.views.leaderboard_view import LeaderboardView
 from configs.config import TEST_CHANNEL_ID
 from data.firebase.mashers_dao import MashersDao
+from data.firebase.reactions_dao import ReactionsDao
 from data.remote.mashi_api import MashiApi
 from data.firebase.tracking_dao import TrackingDao
 
@@ -16,6 +18,7 @@ class MashiModule(commands.Cog):
         self.bot = bot
         self._mashers_dao = MashersDao()
         self._tracking_dao = TrackingDao()
+        self._reactions_dao = ReactionsDao()
         _mashi_api = MashiApi()
 
     @app_commands.command(name="connect_wallet", description="Connect wallet")
@@ -180,6 +183,22 @@ class MashiModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
+
+    @app_commands.command(name="leaderboard", description="Top users by received 🔥")
+    async def leaderboard(self, interaction: discord.Interaction):
+        try:
+            view = LeaderboardView(bot=self.bot)
+            embed = await view.create_embed()
+            await interaction.response.send_message(embed=embed, view=view)
+        except Exception as e:
+            print(e)
+
+
+    @app_commands.command(name="reactions_received", description="🔥 received")
+    async def reactions_received(self, interaction: discord.Interaction):
+        reactions_count = self._reactions_dao.get_reaction_count(interaction.user.id)
+        embed = discord.Embed(title=f"{interaction.user.display_name} got 🔥 x {reactions_count}, and is a lovely member of our community!", color= discord.Color.random())
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):

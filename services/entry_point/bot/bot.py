@@ -3,7 +3,7 @@ from discord.ext import commands
 
 from bot.message_module import get_notify_embed
 from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID
-from data.firebase.mashers_dao import MashersDao
+from data.firebase.reactions_dao import ReactionsDao
 
 
 class MashiBot(commands.Bot):
@@ -15,7 +15,7 @@ class MashiBot(commands.Bot):
         intents.guilds = True
         intents.reactions = True
         super().__init__(command_prefix="!", intents=intents)
-        self._mashers_dao = MashersDao()
+        self._reactions_dao = ReactionsDao()
         MashiBot._instance = self
 
     @classmethod
@@ -77,7 +77,12 @@ class MashiBot(commands.Bot):
             poster_id = self._get_poster_id_from_message(message)
 
             if poster_id and poster_id != payload.user_id:
-                self._mashers_dao.update_reaction_count(poster_id, 1)
+                self._reactions_dao.update_reaction_count(poster_id, 1)
+                total_count = self._reactions_dao.get_reaction_count(poster_id)
+
+                if total_count > 0 and total_count % 25 == 0:
+                    mention = f"<@{poster_id}>"
+                    await channel.send(f"🔥! {mention} just hit {total_count} reactions!")
 
         except (discord.NotFound, discord.Forbidden):
             pass
@@ -97,7 +102,7 @@ class MashiBot(commands.Bot):
 
             if poster_id and poster_id != payload.user_id:
                 # Note: Your DAO transaction logic ensures this never goes below 0
-                self._mashers_dao.update_reaction_count(poster_id, -1)
+                self._reactions_dao.update_reaction_count(poster_id, -1)
 
         except (discord.NotFound, discord.Forbidden):
             pass
