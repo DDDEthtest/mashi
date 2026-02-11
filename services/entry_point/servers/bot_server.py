@@ -10,7 +10,7 @@ from bot.bot import MashiBot
 from configs.config import DISCORD_TOKEN, HTTP_PORT
 from data.remote.images_api import ImagesApi
 from converters.apng_converter import apng_bytes_to_webp_bytes
-from converters.svg_ios_converter import process_svg
+from converters.svg_converter import process_svg
 
 app = FastAPI()
 

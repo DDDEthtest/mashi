@@ -1,22 +1,21 @@
-from contextlib import nullcontext
 from io import BytesIO
-from os import name
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from balancer.balancer import Balancer
-from configs.config import TEST_CHANNEL_ID, MAIN_CHANNEL_ID, MASHUP_CHANNEL_ID
+from configs.config import TEST_CHANNEL_ID
 from data.firebase.mashers_dao import MashersDao
 from data.remote.mashi_api import MashiApi
-from bot.button import Button
+from data.firebase.tracking_dao import TrackingDao
 
 
 class MashiModule(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._mashers_dao = MashersDao()
+        self._tracking_dao = TrackingDao()
         _mashi_api = MashiApi()
 
     @app_commands.command(name="connect_wallet", description="Connect wallet")
@@ -82,6 +81,8 @@ class MashiModule(commands.Cog):
         app_commands.Choice(name="GIF", value=1),
     ])
     async def mashi(self, interaction: discord.Interaction, img_type: int = 0):
+        msg = None
+
         try:
             await interaction.response.defer(ephemeral=False)
 
@@ -110,7 +111,7 @@ class MashiModule(commands.Cog):
                         )
                         return
 
-                    #view = Button(author=interaction.user)
+                    # view = Button(author=interaction.user)
 
                     buffer = BytesIO(data)
                     file = discord.File(fp=buffer, filename=f"composite{ext}")
@@ -121,7 +122,7 @@ class MashiModule(commands.Cog):
                     embed.set_image(url=f"attachment://composite{ext}")
                     embed.set_footer(text="© 2026 mash-it")
 
-                    await interaction.followup.send(embed=embed, file=file, ephemeral=False)
+                    msg = await interaction.followup.send(embed=embed, file=file, ephemeral=False)
                     return
 
             await interaction.followup.send(
@@ -136,6 +137,15 @@ class MashiModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
+
+        finally:
+            if msg:
+                try:
+                    await msg.add_reaction("🔥")
+                except Exception as e:
+                    print(e)
+                    pass
+
 
     @app_commands.command(name="delete_mashup", description="Deletes mashup")
     @app_commands.describe(msg_id="Message id on right click")
@@ -154,6 +164,7 @@ class MashiModule(commands.Cog):
             if user_id == interaction.user.id or is_staff:
                 await message.delete()
                 await interaction.followup.send("Mashup was deleted", ephemeral=True)
+                self._tracking_dao.delete_post_tracking(message.id)
                 return
 
             await interaction.followup.send(
@@ -168,7 +179,6 @@ class MashiModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
-
 
 
 async def setup(bot):
