@@ -7,7 +7,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from balancer.balancer import Balancer
-from configs.config import TEST_CHANNEL_ID
+from configs.config import TEST_CHANNEL_ID, MAIN_CHANNEL_ID, MASHUP_CHANNEL_ID
 from data.firebase.mashers_dao import MashersDao
 from data.remote.mashi_api import MashiApi
 from bot.button import Button
@@ -75,7 +75,7 @@ class MashiModule(commands.Cog):
                 ephemeral=True
             )
 
-    @app_commands.command(name="mashi", description="Get mashup")
+    @app_commands.command(name="mashi", description="Generates mashup")
     @app_commands.describe(img_type="Static/Animated")
     @app_commands.choices(img_type=[
         app_commands.Choice(name="PNG", value=0),
@@ -110,7 +110,7 @@ class MashiModule(commands.Cog):
                         )
                         return
 
-                    view = Button(author=interaction.user)
+                    #view = Button(author=interaction.user)
 
                     buffer = BytesIO(data)
                     file = discord.File(fp=buffer, filename=f"composite{ext}")
@@ -119,9 +119,9 @@ class MashiModule(commands.Cog):
 
                     embed = discord.Embed(title=f"{interaction.user.display_name}'s mashup", color=color)
                     embed.set_image(url=f"attachment://composite{ext}")
-                    embed.set_footer(text="© 2026 mash-it")
+                    embed.set_footer(text=f"© 2026 mash-it x {interaction.user.id}")
 
-                    await interaction.followup.send(embed=embed, file=file, view=view, ephemeral=False)
+                    await interaction.followup.send(embed=embed, file=file, ephemeral=False)
                     return
 
             await interaction.followup.send(
@@ -136,6 +136,36 @@ class MashiModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
+
+    @app_commands.command(name="delete_mashup", description="Deletes mashup")
+    @app_commands.describe(msg_id="Message id on right click")
+    async def delete_mashup(self, interaction: discord.Interaction, msg_id: str):
+        try:
+            await interaction.response.defer(ephemeral=True)
+
+            message = await interaction.channel.fetch_message(int(msg_id))
+
+            is_staff = interaction.user.guild_permissions.administrator or \
+                       interaction.user.guild_permissions.manage_messages
+
+            if str(interaction.user.id) in message.embeds[0].footer.text or is_staff:
+                await message.delete()
+                await interaction.followup.send("Mashup was deleted", ephemeral=True)
+                return
+
+            await interaction.followup.send(
+                "You are not allowed to delete that mashup",
+                ephemeral=True
+            )
+            return
+
+        except Exception as e:
+            print(e)
+            await interaction.followup.send(
+                "Something went wrong",
+                ephemeral=True
+            )
+
 
 
 async def setup(bot):
