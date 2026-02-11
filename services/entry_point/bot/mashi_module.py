@@ -141,6 +141,7 @@ class MashiModule(commands.Cog):
         finally:
             if msg:
                 try:
+                    self._tracking_dao.insert_mashup(msg_id=msg.id, channel_id=msg.channel.id)
                     await msg.add_reaction("🔥")
                 except Exception as e:
                     print(e)
@@ -164,7 +165,7 @@ class MashiModule(commands.Cog):
             if user_id == interaction.user.id or is_staff:
                 await message.delete()
                 await interaction.followup.send("Mashup was deleted", ephemeral=True)
-                self._tracking_dao.delete_post_tracking(message.id)
+                self._tracking_dao.delete_mashup(message.id)
                 return
 
             await interaction.followup.send(
