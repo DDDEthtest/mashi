@@ -20,18 +20,21 @@ class LeaderboardView(discord.ui.View):
             display_data = data[:self.per_page]
 
             embed = discord.Embed(
-                title="Leaderboard of users by received 🔥",
+                title="Leaderboard",
                 color=discord.Color.green()
             )
 
-            description = ""
+            description_lines = []
             for i, entry in enumerate(display_data, start=offset + 1):
                 user_id = entry["user_id"]
-                user = await self.bot.fetch_user(user_id)
+                count = entry['reaction_count']
 
-                description += f"{i}. {user.display_name} : 🔥 x {entry['reaction_count']}\n"
+                # Using the ID directly in a mention format <@ID>
+                # This is much faster than 'await bot.fetch_user' because it
+                # doesn't require an API call for every single row.
+                description_lines.append(f"{i}. <@{user_id}> : 🔥 x {count}")
 
-            embed.description = description or "No data found."
+            embed.description = "\n".join(description_lines) if description_lines else "No data found."
             embed.set_footer(text="© 2026 mash-it")
 
             # Update button states
@@ -40,12 +43,15 @@ class LeaderboardView(discord.ui.View):
 
             return embed
         except Exception as e:
-            print(e)
+            # Better to log errors properly in a real app
+            print(f"Error in LeaderboardView: {e}")
+            return discord.Embed(title="Error", description="Could not load leaderboard.")
 
     @discord.ui.button(label="Prev page", style=discord.ButtonStyle.gray)
     async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.page -= 1
         embed = await self.create_embed()
+        # Passing self (the view) back ensures button states (disabled/enabled) update
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Next page", style=discord.ButtonStyle.gray)

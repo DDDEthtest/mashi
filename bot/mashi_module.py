@@ -193,10 +193,7 @@ class MashiModule(commands.Cog):
     @app_commands.command(name="reactions_received", description="🔥 received")
     async def reactions_received(self, interaction: discord.Interaction):
         reactions_count = self._reactions_dao.get_reaction_count(interaction.user.id)
-        embed = discord.Embed(
-            title=f"{interaction.user.display_name} got 🔥 x {reactions_count}, and is a lovely member of our community!",
-            color=discord.Color.random())
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(f"You got 🔥 x {reactions_count}, and are a lovely member of our community!")
 
 
 async def setup(bot):
