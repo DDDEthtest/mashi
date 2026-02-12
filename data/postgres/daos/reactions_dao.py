@@ -49,6 +49,7 @@ class ReactionsDao:
             users = (
                 session.query(User)
                 .order_by(desc(User.reaction_count))
+                .filter(User.reaction_count > 0)
                 .limit(limit)
                 .offset(offset)
                 .all()
