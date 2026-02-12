@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
 from bot.message_module import get_notify_embed
-from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID
+from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID, APPROVALS_ROLE_ID, \
+    APPROVALS_CHANNEL_ID
 from data.postgres.daos.reactions_dao import ReactionsDao
 
 
@@ -23,27 +24,33 @@ class MashiBot(commands.Bot):
             cls._instance = MashiBot()
         return cls._instance
 
-    async def notify(self, data: dict):
+    async def notify(self, data: dict, is_release: bool = True):
         try:
             if not data:
                 return
 
             embed = get_notify_embed(data)
 
-            channel = self.instance().get_channel(RELEASES_CHANNEL_ID)
-            if not channel:
+            if is_release:
                 channel = await self.instance().fetch_channel(RELEASES_CHANNEL_ID)
+            else:
+                channel = await self.instance().fetch_channel(APPROVALS_CHANNEL_ID)
 
-            role = channel.guild.get_role(NEW_RELEASES_ROLE_ID)
-            if role is None:
-                all_roles = await channel.guild.fetch_roles()
+            all_roles = await channel.guild.fetch_roles()
+            if is_release:
                 role = discord.utils.get(all_roles, id=int(NEW_RELEASES_ROLE_ID))
+            else:
+                role = discord.utils.get(all_roles, id=int(APPROVALS_ROLE_ID))
+
+            if role is None:
+                return
 
             await channel.send(f"{role.mention}", embed=embed, allowed_mentions=discord.AllowedMentions(roles=True))
         except Exception as e:
             print(e)
             channel = self.instance().get_channel(TEST_CHANNEL_ID)
             await channel.send(f"Notify: {e} for {data}")
+
 
     def _get_poster_id_from_message(self, message: discord.Message) -> int | None:
         # Priority 1: Interaction Metadata
