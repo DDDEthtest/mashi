@@ -28,22 +28,18 @@ class PostgresManager:
         self.engine = create_engine(db_url, echo=False, pool_pre_ping=True)
         self.SessionFactory = sessionmaker(bind=self.engine)
 
-        # 3. Create tables
-        Base.metadata.create_all(self.engine)
+        # NOTE: Removed model imports and Base.metadata.create_all(self.engine)
+        # Table creation will be done in main.py
 
         self._initialized = True
 
     def _ensure_db_exists(self, db_url: str):
         """Connects to 'postgres' db to create the target db if missing."""
-        # Split URL to get the target DB name and the base connection string
         base_url, db_name = db_url.rsplit('/', 1)
-        # Force connection to the default 'postgres' maintenance DB
         temp_url = f"{base_url}/postgres"
 
-        # Psycopg3 requires autocommit mode to run CREATE DATABASE
         with psycopg.connect(temp_url.replace("postgresql+psycopg://", "postgresql://"), autocommit=True) as conn:
             with conn.cursor() as cur:
-                # Check if db exists
                 cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
                 if not cur.fetchone():
                     print(f"Database '{db_name}' not found. Creating it...")
@@ -54,5 +50,5 @@ class PostgresManager:
 
 
 # Usage remains the same
-DB_URI = "postgresql+psycopg://postgres:postgres@localhost:5432/mashi"
+DB_URI = "postgresql+psycopg://postgres:postgres@212.227.161.11:5432/mashi"
 db_manager = PostgresManager(DB_URI)
