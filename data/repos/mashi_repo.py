@@ -1,0 +1,80 @@
+import asyncio
+
+from combiner.pngs.combiners.png_combiner import PngCombiner
+from configs.img_config import LAYER_ORDER
+from data.models.mashup_error import MashupError
+from data.remote.images_api import ImagesApi
+from combiner.gifs.services.gif_bridge_service import GifBridgeService
+from combiner.utils.modules.svg_module import replace_colors, is_svg
+
+
+class MashiRepo:
+    _instance = None
+
+    @classmethod
+    def instance(cls):
+        if cls._instance is None:
+            _images_api = ImagesApi()
+            cls._instance = MashiRepo(_images_api)
+        return cls._instance
+
+    def __init__(self, images_api: ImagesApi):
+        self._png_combiner = PngCombiner()
+        self._images_api = images_api
+
+    def _get_asset(self, asset, colors):
+        try:
+            name = asset.get("name").lower()
+            image_url = asset.get("image")
+
+            src = self._images_api.get_image_src(image_url)
+
+            if is_svg(src):
+                src = replace_colors(
+                    src,
+                    body_color=colors.get("base"),
+                    eyes_color=colors.get("eyes"),
+                    hair_color=colors.get("hair"),
+                )
+
+            return name, src
+
+        except Exception as e:
+            print(e)
+            return None
+
+    async def get_composite(self, mashup: dict, img_type=0) -> bytes | MashupError:
+        try:
+            assets = mashup.get("assets", [])
+            colors = mashup.get("colors", {})
+
+            if not assets:
+                return MashupError(error_msg="No saved mashup")
+
+            # get assets in parallel
+            tasks = [asyncio.to_thread(self._get_asset, asset, colors) for asset in assets]
+            results = await asyncio.gather(*tasks)
+
+            srcs = {}
+            for result in results:
+                if result:
+                    name, src = result
+                    srcs[name] = src
+
+            ordered_traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
+
+            if img_type == 0:
+                img_bytes = self._png_combiner.get_combined_img_bytes(
+                    ordered_traits,
+                )
+            else:
+                img_bytes = await GifBridgeService.get_instance().create_gif(ordered_traits)
+
+            if img_bytes:
+                return img_bytes
+            else:
+                raise Exception("Failed to generate composite image")
+
+        except Exception as e:
+            print(e)
+            return MashupError(error_msg="Internal error. We're working on fix", data=mashup)

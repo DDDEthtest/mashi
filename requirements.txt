@@ -1,0 +1,58 @@
+# --- Web Framework & Server ---
+fastapi==0.124.4
+starlette==0.50.0
+uvicorn==0.38.0
+httpx
+
+# --- Bot & Integration ---
+discord.py==2.6.4
+firebase-admin
+python-dotenv==1.2.1
+
+# --- Image Processing & Graphics ---
+# Using headless for Docker compatibility & specific numpy for stability
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+pillow==12.0.0
+cairocffi==1.7.1
+CairoSVG==2.8.2
+apng==0.3.4
+webp
+tinycss2==1.5.1
+cssselect2==0.8.0
+defusedxml==0.7.1
+webencodings==0.5.1
+
+# --- Database & Async ---
+psycopg==3.3.2
+aiohttp==3.13.2
+aiohappyeyeballs==2.6.1
+aiosignal==1.4.0
+asyncio==4.0.0
+frozenlist==1.8.0
+multidict==6.7.0
+propcache==0.4.1
+yarl==1.22.0
+greenlet==3.3.0
+anyio==4.12.0
+
+# --- Validation & Core ---
+pydantic==2.12.5
+pydantic_core==2.41.5
+annotated-doc==0.0.4
+annotated-types==0.7.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+attrs==25.4.0
+
+# --- Networking & Utilities ---
+requests==2.32.5
+urllib3==2.6.2
+certifi==2025.11.12
+charset-normalizer==3.4.4
+idna==3.11
+h11==0.16.0
+click==8.3.1
+colorama==0.4.6
+pycparser==2.23
+tzdata==2025.3

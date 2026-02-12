@@ -1,20 +1,12 @@
 services:
-  entry-point:
+  app:
     build:
-      context: ./services/entry_point
+      context: .
       dockerfile: Dockerfile
-    container_name: entry-point
+    container_name: app
     expose:
       - "3000"
-    restart: unless-stopped
-
-  combiner:
-    build:
-      context: ./services/combiner
-      dockerfile: Dockerfile
-    container_name: combiner
-    ports:
-      - "777:777"
+      - "777"
     restart: unless-stopped
 
   nginx:
@@ -28,5 +20,5 @@ services:
       - /var/www/certbot:/var/www/certbot:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - entry-point
+      - app
     restart: unless-stopped
