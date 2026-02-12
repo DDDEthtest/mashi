@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from bot.message_module import get_notify_embed
 from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID
-from data.firebase.reactions_dao import ReactionsDao
+from data.postgres.daos.reactions_dao import ReactionsDao
 
 
 class MashiBot(commands.Bot):

@@ -1,5 +1,5 @@
 import discord
-from data.firebase.reactions_dao import ReactionsDao
+from data.postgres.daos.reactions_dao import ReactionsDao
 
 
 class LeaderboardView(discord.ui.View):

@@ -8,6 +8,7 @@ from starlette.responses import StreamingResponse
 from balancer.balancer import Balancer
 from bot.bot import MashiBot
 from configs.config import DISCORD_TOKEN, HTTP_PORT
+from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
 from utils.converters.apng_converter import apng_bytes_to_webp_bytes
 from utils.converters.svg_converter import process_svg
@@ -65,9 +66,14 @@ async def get_mashup(response: Response, wallet: str, img_type: int = 0):
 async def get_apng(image_id: str):
     try:
         url = f"https://ipfs.filebase.io/ipfs/{image_id}"
-        apng_bytes = ImagesApi().get_image_src(url)
-        webp_bytes = apng_bytes_to_webp_bytes(apng_bytes)
-        return StreamingResponse(BytesIO(webp_bytes), media_type="image/webp")
+        src = ImageDao().get_webp_image(url)
+
+        if src is None:
+            apng_bytes = ImagesApi().get_image_src(url)
+            src = apng_bytes_to_webp_bytes(apng_bytes)
+            ImageDao().add_webp_image(url, src)
+
+        return StreamingResponse(BytesIO(src), media_type="image/webp")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Failed to convert image")
@@ -76,9 +82,14 @@ async def get_apng(image_id: str):
 async def get_svg(image_id: str):
     try:
         url = f"https://ipfs.filebase.io/ipfs/{image_id}"
-        svg_bytes = ImagesApi().get_image_src(url)
-        svg_bytes = process_svg(svg_bytes)
-        return StreamingResponse(BytesIO(svg_bytes), media_type="image/svg+xml")
+        src = ImageDao().get_svg_image(url)
+
+        if src is None:
+            svg_bytes = ImagesApi().get_image_src(url)
+            src = process_svg(svg_bytes)
+            ImageDao().add_svg_image(url, src)
+
+        return StreamingResponse(BytesIO(src), media_type="image/svg+xml")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Failed to convert image")

@@ -5,16 +5,16 @@ from discord.ext import commands
 from balancer.balancer import Balancer
 from bot.views.leaderboard_view import LeaderboardView
 from configs.config import TEST_CHANNEL_ID
-from data.firebase.mashers_dao import MashersDao
-from data.firebase.reactions_dao import ReactionsDao
+from data.postgres.daos.user_dao import UserDao
+from data.postgres.daos.reactions_dao import ReactionsDao
 from data.remote.mashi_api import MashiApi
-from data.firebase.tracking_dao import TrackingDao
+from data.postgres.daos.tracking_dao import TrackingDao
 
 
 class MashiModule(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self._mashers_dao = MashersDao()
+        self._user_dao = UserDao()
         self._tracking_dao = TrackingDao()
         self._reactions_dao = ReactionsDao()
         _mashi_api = MashiApi()
@@ -30,7 +30,7 @@ class MashiModule(commands.Cog):
                 )
                 return
 
-            has_wallet = self._mashers_dao.get_wallet(interaction.user.id) is not None
+            has_wallet = self._user_dao.get_wallet(interaction.user.id) is not None
             if has_wallet:
                 await interaction.response.send_message(
                     "You have wallet",
@@ -38,7 +38,7 @@ class MashiModule(commands.Cog):
                 )
                 return
 
-            is_another_user_wallet = self._mashers_dao.check_if_wallet_taken(wallet)
+            is_another_user_wallet = self._user_dao.check_if_wallet_taken(wallet)
             if is_another_user_wallet:
                 await interaction.response.send_message(
                     "Wallet already taken",
@@ -46,7 +46,7 @@ class MashiModule(commands.Cog):
                 )
                 return
 
-            self._mashers_dao.connect_wallet(interaction.user.id, wallet.lower())
+            self._user_dao.connect_wallet(interaction.user.id, wallet.lower())
             await interaction.response.send_message(
                 "Wallet connected",
                 ephemeral=True
@@ -62,7 +62,7 @@ class MashiModule(commands.Cog):
     @app_commands.command(name="disconnect_wallet", description="Disconnect wallet")
     async def disconnect_wallet(self, interaction: discord.Interaction):
         try:
-            self._mashers_dao.disconnect_wallet(interaction.user.id)
+            self._user_dao.disconnect_wallet(interaction.user.id)
             await interaction.response.send_message(
                 "Wallet disconnected",
                 ephemeral=True
@@ -89,7 +89,7 @@ class MashiModule(commands.Cog):
 
             id = interaction.user.id
 
-            wallet = self._mashers_dao.get_wallet(id)
+            wallet = self._user_dao.get_wallet(id)
             if wallet:
                 if img_type == 0:
                     ext = ".png"

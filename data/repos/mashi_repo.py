@@ -3,6 +3,7 @@ import asyncio
 from combiner.pngs.combiners.png_combiner import PngCombiner
 from configs.img_config import LAYER_ORDER
 from data.models.mashup_error import MashupError
+from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
 from combiner.gifs.services.gif_bridge_service import GifBridgeService
 from combiner.utils.modules.svg_module import replace_colors, is_svg
@@ -20,6 +21,7 @@ class MashiRepo:
 
     def __init__(self, images_api: ImagesApi):
         self._png_combiner = PngCombiner()
+        self._image_dao = ImageDao()
         self._images_api = images_api
 
     def _get_asset(self, asset, colors):
@@ -27,7 +29,11 @@ class MashiRepo:
             name = asset.get("name").lower()
             image_url = asset.get("image")
 
-            src = self._images_api.get_image_src(image_url)
+            src = self._image_dao.get_image(image_url)
+
+            if src is None:
+                src = self._images_api.get_image_src(image_url)
+                self._image_dao.add_image(image_url, src)
 
             if is_svg(src):
                 src = replace_colors(
