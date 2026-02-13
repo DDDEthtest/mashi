@@ -3,6 +3,7 @@ from io import BytesIO
 
 import uvicorn
 from fastapi import FastAPI, Response, status, Request, HTTPException
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
 
 from balancer.balancer import Balancer
@@ -15,6 +16,13 @@ from utils.converters.svg_converter import process_svg
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://mash-it.io/", "https://www.mash-it.io/","http://localhost:3000/"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 async def startup():
