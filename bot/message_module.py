@@ -15,27 +15,35 @@ def _generate_assets_links(assets: dict) -> str:
     return assets_links
 
 
-def get_notify_embed(data: dict) -> discord.Embed:
+def get_notify_embed(data: dict, is_release: bool) -> discord.Embed:
     # header
     title = data["title"]
     # details
     artist_name = data["artistName"]
-    listing = data.get("listing", {})
 
-    listing_id = listing.get("listingId")
-    price = listing["priceMatic"]
-    max_supply = listing["maxSupply"]
-    max_per_wallet = listing["maxPerWallet"]
+    url = "https://mash-it.io/mashers"
 
-    embed = discord.Embed(title=title, url=f"https://mash-it.io/mashers?listing={listing_id}", color=discord.Color.green())
+    if is_release:
+        listing = data.get("listing", {})
 
+        listing_id = listing.get("listingId")
+        price = listing["priceMatic"]
+        max_supply = listing["maxSupply"]
+        max_per_wallet = listing["maxPerWallet"]
+        url = f"https://mash-it.io/mashers?listing={listing_id}"
 
-    details = (
-        f"""Artist: {artist_name}
+    embed = discord.Embed(title=title, url=url, color=discord.Color.green())
+
+    if is_release:
+        details = (
+            f"""Artist: {artist_name}
 Price: {price} USDC
 Max Supply: {max_supply}
 Max Per-Wallet: {max_per_wallet}"""
-    )
+        )
+    else:
+        details = f"Artist: {artist_name}"
+
     embed.add_field(name="Details", value=details, inline=False)
 
     # assets

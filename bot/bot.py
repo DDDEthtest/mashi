@@ -29,7 +29,7 @@ class MashiBot(commands.Bot):
             if not data:
                 return
 
-            embed = get_notify_embed(data)
+            embed = get_notify_embed(data, is_release=is_release)
 
             if is_release:
                 channel = await self.instance().fetch_channel(RELEASES_CHANNEL_ID)
