@@ -200,63 +200,75 @@ class MashiModule(commands.Cog):
         await interaction.response.send_message(
             f"You got 🔥 x {reactions_count}, and are a lovely member of our community!")
 
+    import asyncio
+    import discord
+    from discord import app_commands
+
     @app_commands.command(name="contest", description="shows contest progress")
     async def contest(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
+        # Helper function to process individual messages
         async def get_result(message: discord.Message) -> tuple[int, int]:
-            """Returns (poster_id, reaction_count) for a specific message."""
             try:
-                # Refresh message to get latest reaction state
+                # Refresh message to ensure we have the latest reaction data
                 temp_msg = await interaction.channel.fetch_message(message.id)
 
+                # Get the user who triggered the original interaction
                 metadata = temp_msg.interaction_metadata
                 if not metadata:
                     return (0, 0)
 
                 poster_id = metadata.user.id
+
+                # Target emoji
                 target_emoji = "🔥"
                 reaction = discord.utils.get(temp_msg.reactions, emoji=target_emoji)
 
                 if not reaction:
-                    return poster_id, 0
+                    return (poster_id, 0)
 
-                # Get user IDs who reacted
+                # Fetch all users who reacted
                 user_ids = [user.id async for user in reaction.users(limit=None)]
 
-                # Count valid reactions (exclude author and bot)
+                # Count valid reactions: Exclude the poster and the Bot ID
+                bot_id = 1428847584965034154
                 count = len([
                     uid for uid in user_ids
-                    if uid != poster_id and uid != 1428847584965034154
+                    if uid != poster_id and uid != bot_id
                 ])
 
-                return poster_id, count
+                return (poster_id, count)
 
             except Exception as e:
-                print(f"Error on message {message.id}: {e}")
-                return 0, 0
+                print(f"Error processing message {message.id}: {e}")
+                return (0, 0)
 
         try:
-            # Permission check
+            # 1. Permissions Check
             is_staff = interaction.user.guild_permissions.administrator or \
                        interaction.user.guild_permissions.manage_messages or \
                        interaction.user.id == 1167694222120468553
 
             if not is_staff:
-                return await interaction.followup.send("Unauthorized.", ephemeral=True)
+                return await interaction.followup.send(
+                    "You are not allowed to use that command",
+                    ephemeral=True
+                )
 
-            # 1. Fetch bot messages (contest entries)
+            # 2. Collect bot-sent messages (entries) from history
             messages = []
+            bot_id = 1428847584965034154
             async for message in interaction.channel.history(limit=100):
-                if message.author.id == 1428847584965034154:
+                if message.author.id == bot_id:
                     messages.append(message)
 
-            # 2. Process all messages concurrently
+            # 3. Process concurrently (Fixed: No asyncio.to_thread)
             tasks = [get_result(msg) for msg in messages]
             raw_results = await asyncio.gather(*tasks)
 
-            # Filter out invalid results (0,0) and sort by count descending
-            # Structure: [(user_id, count), (user_id, count), ...]
+            # 4. Sort entries by 🔥 count descending
+            # Format: [(user_id, count), ...]
             sorted_entries = sorted(
                 [r for r in raw_results if r[0] != 0],
                 key=lambda x: x[1],
@@ -264,28 +276,46 @@ class MashiModule(commands.Cog):
             )
 
             if not sorted_entries:
-                raise
+                return await interaction.followup.send("No contest entries found.", ephemeral=True)
 
-            # 3. Top 5 logic including ties
+            # 5. Logic: Top 5 Unique Users + Ties
             winners = []
-            for i, entry in enumerate(sorted_entries):
-                if i < 5:
+            seen_users = set()
+            unique_count = 0
+
+            for entry in sorted_entries:
+                user_id, count = entry
+
+                # Skip if this user is already in the winners list
+                if user_id in seen_users:
+                    continue
+
+                if unique_count < 5:
                     winners.append(entry)
-                elif entry[1] == sorted_entries[i - 1][1]:  # Tie with the previous person
+                    seen_users.add(user_id)
+                    unique_count += 1
+                # Check for ties with the 5th unique person
+                elif count == winners[4][1]:
                     winners.append(entry)
+                    seen_users.add(user_id)
                 else:
+                    # No more room for unique users or ties
                     break
 
-            # 4. Build message
-            leaderboard_msg = "Progress\n"
-            for i, (user_id, count) in enumerate(winners):
-                leaderboard_msg += f"{i + 1}. <@{user_id}> : 🔥 x {count}\n"
+            # 6. Build the Leaderboard Message
+            leaderboard_msg = "## 🏆 Contest Leaderboard (Top 5)\n"
+            if not winners:
+                leaderboard_msg += "No valid entries yet."
+            else:
+                for i, (user_id, count) in enumerate(winners):
+                    # Use i+1 for ranking; bold the count for readability
+                    leaderboard_msg += f"{i + 1}. <@{user_id}> : **{count}** 🔥\n"
 
             await interaction.followup.send(leaderboard_msg, ephemeral=True)
 
         except Exception as e:
-            print(f"Error: {e}")
-            await interaction.followup.send("Something went wrong", ephemeral=True)
+            print(f"General error in contest: {e}")
+            await interaction.followup.send("Something went wrong.", ephemeral=True)
 
 
 async def setup(bot):
