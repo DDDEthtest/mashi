@@ -200,22 +200,30 @@ class MashiModule(commands.Cog):
         await interaction.response.send_message(
             f"You got 🔥 x {reactions_count}, and are a lovely member of our community!")
 
-
     @app_commands.command(name="contest", description="shows contest progress")
-    @app_commands.describe(winners_count="The number of unique top winners to show")
-    async def contest(self, interaction: discord.Interaction, winners_count: int):
+    @app_commands.describe(
+        winners_count="Winners count",
+        is_all_sum="True - sum of all post reactions"
+    )
+    @app_commands.choices(is_all_sum=[
+        app_commands.Choice(name="FALSE", value=0),
+        app_commands.Choice(name="TRUE", value=1),
+    ])
+    async def contest(
+            self,
+            interaction: discord.Interaction,
+            winners_count: int,
+            is_all_sum: int = 0  # Default to 0 (Highest Single Post)
+    ):
         await interaction.response.defer(ephemeral=True)
 
-        # Bot ID to exclude from counts
         BOT_ID = 1428847584965034154
 
         async def get_result(message: discord.Message) -> tuple[int, int]:
             """Processes a message to return (user_id, reaction_count)."""
             try:
-                # Refresh message to get latest reaction state
+                # Refresh message state to get accurate reaction counts
                 temp_msg = await interaction.channel.fetch_message(message.id)
-
-                # Get the user who triggered the original interaction
                 metadata = temp_msg.interaction_metadata
                 if not metadata:
                     return (0, 0)
@@ -237,9 +245,7 @@ class MashiModule(commands.Cog):
                 ])
 
                 return (poster_id, count)
-
-            except Exception as e:
-                print(f"Error processing message {message.id}: {e}")
+            except Exception:
                 return (0, 0)
 
         try:
@@ -251,58 +257,48 @@ class MashiModule(commands.Cog):
             if not is_staff:
                 return await interaction.followup.send("Unauthorized access", ephemeral=True)
 
-            # 2. Fetch history and identify bot-sent contest entries
-            messages = []
-            async for message in interaction.channel.history(limit=150):
-                if message.author.id == BOT_ID:
-                    messages.append(message)
+            # 2. Identify bot-sent contest entries (limit search to 150 messages)
+            messages = [msg async for msg in interaction.channel.history(limit=150) if msg.author.id == BOT_ID]
 
             # 3. Gather results concurrently
             tasks = [get_result(msg) for msg in messages]
             raw_results = await asyncio.gather(*tasks)
 
-            # 4. Filter and Sort by Flame count descending
-            # Format: [(user_id, count), ...]
-            sorted_entries = sorted(
-                [r for r in raw_results if r[0] != 0],
-                key=lambda x: x[1],
-                reverse=True
-            )
-
-            if not sorted_entries:
-                raise
-
-            # 5. Logic: Top N Unique Users + Ties for the last spot
-            winners = []
-            seen_users = set()
-            unique_count = 0
-
-            for entry in sorted_entries:
-                user_id, count = entry
-
-                # Skip if this user already has a higher-placing post in the list
-                if user_id in seen_users:
+            # 4. Aggregate Scores by User
+            # Key: user_id, Value: score
+            user_scores = {}
+            for user_id, count in raw_results:
+                if user_id == 0:
                     continue
 
+                if is_all_sum == 1:  # Sum of All Posts
+                    user_scores[user_id] = user_scores.get(user_id, 0) + count
+                else:  # 0: Highest Single Post
+                    user_scores[user_id] = max(user_scores.get(user_id, 0), count)
+
+            # 5. Sort by score descending
+            sorted_users = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
+
+            if not sorted_users:
+                return await interaction.followup.send("No valid entries detected.", ephemeral=True)
+
+            # 6. Top N Unique Users + Ties for the last spot
+            winners = []
+            unique_count = 0
+            for user_id, count in sorted_users:
                 if unique_count < winners_count:
-                    winners.append(entry)
-                    seen_users.add(user_id)
+                    winners.append((user_id, count))
                     unique_count += 1
-                # Handle ties specifically for the Nth place score
                 elif winners and count == winners[-1][1]:
-                    winners.append(entry)
-                    seen_users.add(user_id)
+                    winners.append((user_id, count))
                 else:
                     break
 
-            # 6. Formatting the Leaderboard
+            # 7. Formatting the Leaderboard
             leaderboard_msg = f"🏆\n"
-            if not winners:
-                leaderboard_msg += "No valid entries detected."
-            else:
-                for i, (user_id, count) in enumerate(winners):
-                    # Using i+1 for rank. Users with tied scores will show their relative list position.
-                    leaderboard_msg += f"{i + 1}. <@{user_id}> : 🔥 x {count}\n"
+
+            for i, (user_id, count) in enumerate(winners):
+                leaderboard_msg += f"{i + 1}. <@{user_id}> : 🔥 x {count}\n"
 
             await interaction.followup.send(leaderboard_msg, ephemeral=True)
 
