@@ -200,18 +200,19 @@ class MashiModule(commands.Cog):
         await interaction.response.send_message(
             f"You got 🔥 x {reactions_count}, and are a lovely member of our community!")
 
-    import asyncio
-    import discord
-    from discord import app_commands
 
     @app_commands.command(name="contest", description="shows contest progress")
-    async def contest(self, interaction: discord.Interaction):
+    @app_commands.describe(winners_count="The number of unique top winners to show")
+    async def contest(self, interaction: discord.Interaction, winners_count: int):
         await interaction.response.defer(ephemeral=True)
 
-        # Helper function to process individual messages
+        # Bot ID to exclude from counts
+        BOT_ID = 1428847584965034154
+
         async def get_result(message: discord.Message) -> tuple[int, int]:
+            """Processes a message to return (user_id, reaction_count)."""
             try:
-                # Refresh message to ensure we have the latest reaction data
+                # Refresh message to get latest reaction state
                 temp_msg = await interaction.channel.fetch_message(message.id)
 
                 # Get the user who triggered the original interaction
@@ -220,22 +221,19 @@ class MashiModule(commands.Cog):
                     return (0, 0)
 
                 poster_id = metadata.user.id
-
-                # Target emoji
                 target_emoji = "🔥"
                 reaction = discord.utils.get(temp_msg.reactions, emoji=target_emoji)
 
                 if not reaction:
                     return (poster_id, 0)
 
-                # Fetch all users who reacted
+                # Get user IDs who reacted
                 user_ids = [user.id async for user in reaction.users(limit=None)]
 
-                # Count valid reactions: Exclude the poster and the Bot ID
-                bot_id = 1428847584965034154
+                # Count valid reactions (exclude author and the bot)
                 count = len([
                     uid for uid in user_ids
-                    if uid != poster_id and uid != bot_id
+                    if uid != poster_id and uid != BOT_ID
                 ])
 
                 return (poster_id, count)
@@ -251,23 +249,19 @@ class MashiModule(commands.Cog):
                        interaction.user.id == 1167694222120468553
 
             if not is_staff:
-                return await interaction.followup.send(
-                    "You are not allowed to use that command",
-                    ephemeral=True
-                )
+                return await interaction.followup.send("Unauthorized access", ephemeral=True)
 
-            # 2. Collect bot-sent messages (entries) from history
+            # 2. Fetch history and identify bot-sent contest entries
             messages = []
-            bot_id = 1428847584965034154
-            async for message in interaction.channel.history(limit=100):
-                if message.author.id == bot_id:
+            async for message in interaction.channel.history(limit=150):
+                if message.author.id == BOT_ID:
                     messages.append(message)
 
-            # 3. Process concurrently (Fixed: No asyncio.to_thread)
+            # 3. Gather results concurrently
             tasks = [get_result(msg) for msg in messages]
             raw_results = await asyncio.gather(*tasks)
 
-            # 4. Sort entries by 🔥 count descending
+            # 4. Filter and Sort by Flame count descending
             # Format: [(user_id, count), ...]
             sorted_entries = sorted(
                 [r for r in raw_results if r[0] != 0],
@@ -276,9 +270,9 @@ class MashiModule(commands.Cog):
             )
 
             if not sorted_entries:
-                return await interaction.followup.send("No contest entries found.", ephemeral=True)
+                raise
 
-            # 5. Logic: Top 5 Unique Users + Ties
+            # 5. Logic: Top N Unique Users + Ties for the last spot
             winners = []
             seen_users = set()
             unique_count = 0
@@ -286,36 +280,35 @@ class MashiModule(commands.Cog):
             for entry in sorted_entries:
                 user_id, count = entry
 
-                # Skip if this user is already in the winners list
+                # Skip if this user already has a higher-placing post in the list
                 if user_id in seen_users:
                     continue
 
-                if unique_count < 5:
+                if unique_count < winners_count:
                     winners.append(entry)
                     seen_users.add(user_id)
                     unique_count += 1
-                # Check for ties with the 5th unique person
-                elif count == winners[4][1]:
+                # Handle ties specifically for the Nth place score
+                elif winners and count == winners[-1][1]:
                     winners.append(entry)
                     seen_users.add(user_id)
                 else:
-                    # No more room for unique users or ties
                     break
 
-            # 6. Build the Leaderboard Message
-            leaderboard_msg = "## 🏆 Contest Leaderboard (Top 5)\n"
+            # 6. Formatting the Leaderboard
+            leaderboard_msg = f"🏆\n"
             if not winners:
-                leaderboard_msg += "No valid entries yet."
+                leaderboard_msg += "No valid entries detected."
             else:
                 for i, (user_id, count) in enumerate(winners):
-                    # Use i+1 for ranking; bold the count for readability
-                    leaderboard_msg += f"{i + 1}. <@{user_id}> : **{count}** 🔥\n"
+                    # Using i+1 for rank. Users with tied scores will show their relative list position.
+                    leaderboard_msg += f"{i + 1}. <@{user_id}> : 🔥 x {count}\n"
 
             await interaction.followup.send(leaderboard_msg, ephemeral=True)
 
         except Exception as e:
-            print(f"General error in contest: {e}")
-            await interaction.followup.send("Something went wrong.", ephemeral=True)
+            print(f"General error: {e}")
+            await interaction.followup.send("Something went wrong", ephemeral=True)
 
 
 async def setup(bot):
