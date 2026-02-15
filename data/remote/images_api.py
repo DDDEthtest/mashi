@@ -1,15 +1,22 @@
+import time
 import requests
 
 
 class ImagesApi:
     def get_image_src(self, image_url: str):
-        try:
-            res = requests.get(image_url)
-            if res.status_code != 200:
-                return None
+        for i in range(5):
+            try:
+                res = requests.get(image_url)
 
-            return res.content
+                if res.status_code != 200:
+                    time.sleep(1)
+                    continue
 
-        except Exception as e:
-            print(e)
-            return None
+                return res.content
+
+            except Exception as e:
+                print(e)
+                continue
+
+        return None
+
