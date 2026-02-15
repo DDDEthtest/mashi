@@ -1,7 +1,10 @@
+import asyncio
 from io import BytesIO
 import discord
 from discord import app_commands
 from discord.ext import commands
+from pyasn1_modules.rfc3280 import ub_serial_number
+
 from balancer.balancer import Balancer
 from bot.views.leaderboard_view import LeaderboardView
 from configs.config import TEST_CHANNEL_ID
@@ -160,7 +163,8 @@ class MashiModule(commands.Cog):
             user_id = user.id
 
             is_staff = interaction.user.guild_permissions.administrator or \
-                       interaction.user.guild_permissions.manage_messages
+                       interaction.user.guild_permissions.manage_messagesor or \
+                       interaction.user.id == 1167694222120468553
 
             if user_id == interaction.user.id or is_staff:
                 await message.delete()
@@ -193,7 +197,95 @@ class MashiModule(commands.Cog):
     @app_commands.command(name="reactions_received", description="🔥 received")
     async def reactions_received(self, interaction: discord.Interaction):
         reactions_count = self._reactions_dao.get_reaction_count(interaction.user.id)
-        await interaction.response.send_message(f"You got 🔥 x {reactions_count}, and are a lovely member of our community!")
+        await interaction.response.send_message(
+            f"You got 🔥 x {reactions_count}, and are a lovely member of our community!")
+
+    @app_commands.command(name="contest", description="shows contest progress")
+    async def contest(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        async def get_result(message: discord.Message) -> tuple[int, int]:
+            """Returns (poster_id, reaction_count) for a specific message."""
+            try:
+                # Refresh message to get latest reaction state
+                temp_msg = await interaction.channel.fetch_message(message.id)
+
+                metadata = temp_msg.interaction_metadata
+                if not metadata:
+                    return (0, 0)
+
+                poster_id = metadata.user.id
+                target_emoji = "🔥"
+                reaction = discord.utils.get(temp_msg.reactions, emoji=target_emoji)
+
+                if not reaction:
+                    return poster_id, 0
+
+                # Get user IDs who reacted
+                user_ids = [user.id async for user in reaction.users(limit=None)]
+
+                # Count valid reactions (exclude author and bot)
+                count = len([
+                    uid for uid in user_ids
+                    if uid != poster_id and uid != 1428847584965034154
+                ])
+
+                return poster_id, count
+
+            except Exception as e:
+                print(f"Error on message {message.id}: {e}")
+                return 0, 0
+
+        try:
+            # Permission check
+            is_staff = interaction.user.guild_permissions.administrator or \
+                       interaction.user.guild_permissions.manage_messages or \
+                       interaction.user.id == 1167694222120468553
+
+            if not is_staff:
+                return await interaction.followup.send("Unauthorized.", ephemeral=True)
+
+            # 1. Fetch bot messages (contest entries)
+            messages = []
+            async for message in interaction.channel.history(limit=100):
+                if message.author.id == 1428847584965034154:
+                    messages.append(message)
+
+            # 2. Process all messages concurrently
+            tasks = [get_result(msg) for msg in messages]
+            raw_results = await asyncio.gather(*tasks)
+
+            # Filter out invalid results (0,0) and sort by count descending
+            # Structure: [(user_id, count), (user_id, count), ...]
+            sorted_entries = sorted(
+                [r for r in raw_results if r[0] != 0],
+                key=lambda x: x[1],
+                reverse=True
+            )
+
+            if not sorted_entries:
+                raise
+
+            # 3. Top 5 logic including ties
+            winners = []
+            for i, entry in enumerate(sorted_entries):
+                if i < 5:
+                    winners.append(entry)
+                elif entry[1] == sorted_entries[i - 1][1]:  # Tie with the previous person
+                    winners.append(entry)
+                else:
+                    break
+
+            # 4. Build message
+            leaderboard_msg = "Progress\n"
+            for i, (user_id, count) in enumerate(winners):
+                leaderboard_msg += f"{i + 1}. <@{user_id}> : 🔥 x {count}\n"
+
+            await interaction.followup.send(leaderboard_msg, ephemeral=True)
+
+        except Exception as e:
+            print(f"Error: {e}")
+            await interaction.followup.send("Something went wrong", ephemeral=True)
 
 
 async def setup(bot):
