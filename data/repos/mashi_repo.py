@@ -49,7 +49,8 @@ class MashiRepo:
             print(e)
             return None
 
-    async def get_composite(self, mashup: dict, img_type=0) -> bytes | MashupError:
+    async def get_composite(self, mashup: dict, img_type=0, is_higher_res: int = False, is_longer: bool = False,
+                         is_smoother: bool = False, playback_speed: int = 0) -> bytes | MashupError:
         try:
             assets = mashup.get("assets", [])
             colors = mashup.get("colors", {})
@@ -74,7 +75,17 @@ class MashiRepo:
                     ordered_traits,
                 )
             else:
-                img_bytes = await GifBridgeService.get_instance().create_gif(ordered_traits)
+                if playback_speed == 0:
+                    is_faster = False
+                    is_slower = False
+                elif playback_speed == 1:
+                    is_faster = True
+                    is_slower = False
+                else:
+                    is_faster = False
+                    is_slower = True
+
+                img_bytes = await GifBridgeService.get_instance().create_gif(ordered_traits, is_higher_res=is_higher_res, is_smoother=is_smoother, is_longer=is_longer, is_faster=is_faster, is_slower=is_slower)
 
             if img_bytes:
                 return img_bytes

@@ -14,9 +14,23 @@ async function startServer() {
                     const data = JSON.parse(body);
                     const tempDir = data.temp_dir;
                     const maxT = data.max_t;
-                    console.log("Received:", tempDir, maxT);
 
-                    const gifPath = await generateGif(tempDir, maxT);
+                    const isHigherRes = data.is_higher_res;
+                    const isLonger = data.is_longer;
+                    const isSmoother = data.is_smoother;
+                    const isFaster = data.is_faster;
+                    const isSlower = data.is_slower;
+
+                    const gifPath = await generateGif(
+                        tempDir,
+                        maxT,
+                        isHigherRes,
+                        isLonger,
+                        isSmoother,
+                        isFaster,
+                        isSlower
+                    );
+
                     res.writeHead(200, {'Content-Type': 'text/plain'});
                     res.end(gifPath);
                 } catch (err) {

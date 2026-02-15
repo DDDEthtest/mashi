@@ -19,12 +19,13 @@ class Balancer:
             cls._instance = Balancer()
         return cls._instance
 
-    async def get_composite(self, wallet: str, img_type: int = 0):
+    async def get_composite(self, wallet: str, img_type: int = 0, is_higher_res: int = False, is_longer: bool = False,
+                         is_smoother: bool = False, playback_speed: int = 0):
         # Acquire semaphore to limit concurrency
         async with self._composite_semaphore:
             try:
                 mashup = self.mashi_api.get_mashi_data(wallet)
-                return await self.mashi_repo.get_composite(mashup=mashup, img_type=img_type)
+                return await self.mashi_repo.get_composite(mashup=mashup, img_type=img_type, is_higher_res=is_higher_res, is_longer=is_longer, is_smoother=is_smoother, playback_speed=playback_speed)
 
             except Exception as e:
                 print(f"Error in get_composite: {e}")

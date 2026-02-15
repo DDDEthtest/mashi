@@ -151,6 +151,93 @@ class MashiModule(commands.Cog):
                     print(e)
                     pass
 
+    @app_commands.command(name="gif", description="Generates gif")
+    @app_commands.describe(is_higher_res="2x res", is_longer="2x length", is_smoother="2x fps", playback_speed="playback speed")
+    @app_commands.choices(
+        is_higher_res=[
+            app_commands.Choice(name="YES", value=1),
+            app_commands.Choice(name="NO", value=0),
+        ],
+        is_longer=[
+            app_commands.Choice(name="YES", value=1),
+            app_commands.Choice(name="NO", value=0),
+        ],
+        is_smoother=[
+            app_commands.Choice(name="YES", value=1),
+            app_commands.Choice(name="NO", value=0),
+        ],
+        playback_speed=[
+            app_commands.Choice(name="NORMAL", value=0),
+            app_commands.Choice(name="FASTER", value=1),
+            app_commands.Choice(name="SLOWER", value=-1),
+        ]
+    )
+    async def gif(self, interaction: discord.Interaction, is_higher_res: int = 0, is_longer: int = 0,
+                         is_smoother: int = 0, playback_speed: int = 0):
+        msg = None
+
+        try:
+            await interaction.response.defer(ephemeral=False)
+
+            id = interaction.user.id
+
+            wallet = self._user_dao.get_wallet(id)
+            if wallet:
+                ext = ".gif"
+
+                data = await Balancer.instance().get_composite(wallet, img_type=1, is_higher_res = bool(is_higher_res), is_longer = bool(is_longer),
+                         is_smoother = bool(is_smoother), playback_speed = playback_speed)
+                if data:
+                    if type(data) is not bytes:
+                        msg = data.error_msg
+                        msg_data = data.data
+
+                        if msg_data:
+                            channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
+                            await channel.send(data)
+
+                        await interaction.followup.send(
+                            msg,
+                            ephemeral=True
+                        )
+                        return
+
+                    # view = Button(author=interaction.user)
+
+                    buffer = BytesIO(data)
+                    file = discord.File(fp=buffer, filename=f"composite{ext}")
+
+                    color = discord.Color.random()
+
+                    embed = discord.Embed(title=f"{interaction.user.display_name}'s mashup", color=color)
+                    embed.set_image(url=f"attachment://composite{ext}")
+                    embed.set_footer(text="© 2026 mash-it")
+
+                    msg = await interaction.followup.send(embed=embed, file=file, ephemeral=False)
+                    return
+
+            await interaction.followup.send(
+                f"/connect_wallet command",
+                ephemeral=True
+            )
+
+        except Exception as e:
+            channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
+            await channel.send(f"/mashi: {e}")
+            await interaction.followup.send(
+                "Something went wrong",
+                ephemeral=True
+            )
+
+        finally:
+            if msg:
+                try:
+                    self._tracking_dao.insert_mashup(msg_id=msg.id, channel_id=msg.channel.id)
+                    await msg.add_reaction("🔥")
+                except Exception as e:
+                    print(e)
+                    pass
+
     @app_commands.command(name="delete_mashup", description="Deletes mashup")
     @app_commands.describe(msg_id="Message id on right click")
     async def delete_mashup(self, interaction: discord.Interaction, msg_id: str):

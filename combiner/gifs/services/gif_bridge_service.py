@@ -26,7 +26,8 @@ class GifBridgeService:
             cls._instance = cls()
         return cls._instance
 
-    async def create_gif(self, traits_bytes: list):
+    async def create_gif(self, traits_bytes: list, is_higher_res: bool = False, is_longer: bool = False,
+                         is_smoother: bool = False, is_faster: bool = False, is_slower: bool = False):
         gif_bytes = None
         temp_dir = PROJECT_ROOT / "temp"
         id_dir = temp_dir / str(uuid.uuid4())
@@ -44,9 +45,14 @@ class GifBridgeService:
         payload = {
             "temp_dir": str(id_dir),
             "max_t": max_t,
+            "is_higher_res": is_higher_res,
+            "is_longer": is_longer,
+            "is_smoother": is_smoother,
+            "is_faster": is_faster,
+            "is_slower": is_slower
         }
 
-        async with httpx.AsyncClient(timeout=666.0) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             try:
                 response = await client.post(GIF_MAKER_SERVER_URI, json=payload)
                 if response.status_code == 200:
