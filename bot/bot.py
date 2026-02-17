@@ -1,9 +1,13 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 from bot.message_module import get_notify_embed
 from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID, APPROVALS_ROLE_ID, \
     APPROVALS_CHANNEL_ID
 from data.postgres.daos.reactions_dao import ReactionsDao
+from services import caching_service
+from services.caching_service import CachingService
 
 
 class MashiBot(commands.Bot):
@@ -46,6 +50,8 @@ class MashiBot(commands.Bot):
                 return
 
             await channel.send(f"{role.mention}", embed=embed, allowed_mentions=discord.AllowedMentions(roles=True))
+
+            await CachingService.instance().fetch_and_cache_item(data['docId'])
         except Exception as e:
             print(e)
             channel = self.instance().get_channel(TEST_CHANNEL_ID)

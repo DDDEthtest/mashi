@@ -393,6 +393,80 @@ class MashiModule(commands.Cog):
             print(f"General error: {e}")
             await interaction.followup.send("Something went wrong", ephemeral=True)
 
+    @app_commands.command(name="contest_public", description="Shows the current contest leaderboard")
+    @app_commands.describe(
+        limit="How many top posts to show"
+    )
+    async def contest_public(
+            self,
+            interaction: discord.Interaction,
+            limit: int = 10
+    ):
+        # Publicly visible: ephemeral=False (default)
+        await interaction.response.defer(ephemeral=False)
+
+        BOT_ID = 1428847584965034154
+
+        async def get_entry_data(message: discord.Message):
+            """Processes a message and returns specific post details."""
+            try:
+                # Refresh to get current reactions
+                temp_msg = await interaction.channel.fetch_message(message.id)
+                metadata = temp_msg.interaction_metadata
+
+                if not metadata:
+                    return None
+
+                poster_id = metadata.user.id
+                target_emoji = "🔥"
+                reaction = discord.utils.get(temp_msg.reactions, emoji=target_emoji)
+
+                if not reaction:
+                    count = 0
+                else:
+                    user_ids = [user.id async for user in reaction.users(limit=None)]
+                    # Filter out the author and the bot from the count
+                    count = len([uid for uid in user_ids if uid != poster_id and uid != BOT_ID])
+
+                return {
+                    "user_id": poster_id,
+                    "count": count,
+                    "url": temp_msg.jump_url
+                }
+            except Exception:
+                return None
+
+        try:
+            # Search the last 200 messages for bot-sent entries
+            messages = [msg async for msg in interaction.channel.history(limit=200) if msg.author.id == BOT_ID]
+
+            # Gather data for every post individually
+            tasks = [get_entry_data(msg) for msg in messages]
+            raw_results = await asyncio.gather(*tasks)
+
+            # Filter out None results and sort by reaction count
+            valid_entries = [res for res in raw_results if res is not None]
+            sorted_entries = sorted(valid_entries, key=lambda x: x['count'], reverse=True)
+
+            if not sorted_entries:
+                return await interaction.followup.send("No contest entries found in recent history.")
+
+            # Build the leaderboard message
+            leaderboard_msg = "## 🏆 Contest Leaderboard\n"
+
+            # Take the top N entries (plus ties for the last spot)
+            display_list = sorted_entries[:limit]
+
+            for i, entry in enumerate(display_list):
+                user_mention = f"<@{entry['user_id']}>"
+                leaderboard_msg += f"{i + 1}. {user_mention}: 🔥 x {entry['count']} - [View Post]({entry['url']})\n"
+
+            await interaction.followup.send(leaderboard_msg)
+
+        except Exception as e:
+            print(f"Leaderboard error: {e}")
+            await interaction.followup.send("An error occurred while fetching the leaderboard.")
+
 
 async def setup(bot):
     await bot.add_cog(MashiModule(bot))

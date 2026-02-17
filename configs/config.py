@@ -27,3 +27,5 @@ APPROVALS_ROLE_ID = 1471545011437830301
 
 # apis
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+MASHIT_KEY = os.getenv("MASHIT_KEY")
+MASHIT_BASE_URL = "https://avatar-artists-guild.web.app/"
