@@ -1,6 +1,9 @@
 import asyncio
 
 from combiner.pngs.combiners.png_combiner import PngCombiner
+from combiner.utils.modules.apng_module import is_png, is_apng
+from combiner.utils.modules.gif_module import is_gif
+from combiner.utils.modules.webp_module import is_webp
 from configs.img_config import LAYER_ORDER
 from data.models.mashup_error import MashupError
 from data.postgres.daos.image_dao import ImageDao
@@ -33,7 +36,16 @@ class MashiRepo:
 
             if src is None:
                 src = self._images_api.get_image_src(image_url)
-                self._image_dao.add_image(image_url, src)
+
+                is_image = is_png(src) or \
+                           is_apng(src) or \
+                           is_svg(src) or \
+                           is_gif(src) or \
+                           is_webp(src)
+
+                if is_image:
+                    self._image_dao.add_image(image_url, src)
+
 
             if is_svg(src):
                 src = replace_colors(

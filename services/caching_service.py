@@ -1,4 +1,9 @@
 import asyncio
+
+from combiner.utils.modules.apng_module import is_png, is_apng
+from combiner.utils.modules.gif_module import is_gif
+from combiner.utils.modules.svg_module import is_svg
+from combiner.utils.modules.webp_module import is_webp
 from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
 from data.remote.mashi_api import MashiApi
@@ -13,7 +18,7 @@ class CachingService:
         self._mashit_api = MashitApi()
         self._image_dao = ImageDao()
         self._images_api = ImagesApi()
-        self.gateway = "https://ipfs.filebase.io/ipfs/"
+        self.gateway = "https://ipfs.io/ipfs/"
 
     @classmethod
     def instance(cls):
@@ -37,7 +42,15 @@ class CachingService:
 
             if src is None:
                 src = await asyncio.to_thread(self._images_api.get_image_src, url)
-                await asyncio.to_thread(self._image_dao.add_image, url, src)
+
+                is_image = is_png(src) or \
+                    is_apng(src) or \
+                    is_svg(src) or \
+                    is_gif(src) or \
+                    is_webp(src)
+
+                if is_image:
+                    await asyncio.to_thread(self._image_dao.add_image, url, src)
 
         except Exception as e:
             print(e)

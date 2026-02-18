@@ -6,7 +6,6 @@ from bot.message_module import get_notify_embed
 from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID, APPROVALS_ROLE_ID, \
     APPROVALS_CHANNEL_ID
 from data.postgres.daos.reactions_dao import ReactionsDao
-from services import caching_service
 from services.caching_service import CachingService
 
 

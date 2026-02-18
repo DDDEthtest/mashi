@@ -8,6 +8,8 @@ from starlette.responses import StreamingResponse
 
 from balancer.balancer import Balancer
 from bot.bot import MashiBot
+from combiner.utils.modules.svg_module import is_svg
+from combiner.utils.modules.webp_module import is_webp
 from configs.config import DISCORD_TOKEN, HTTP_PORT
 from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
@@ -90,13 +92,16 @@ async def get_mashup(response: Response, wallet: str, img_type: int = 0):
 @app.get("/api/apng/{image_id}")
 async def get_apng(image_id: str):
     try:
-        url = f"https://ipfs.filebase.io/ipfs/{image_id}"
+        url = f"https://ipfs.io/ipfs/{image_id}"
         src = ImageDao().get_webp_image(url)
 
         if src is None:
             apng_bytes = ImagesApi().get_image_src(url)
             src = apng_bytes_to_webp_bytes(apng_bytes)
-            ImageDao().add_webp_image(url, src)
+
+            is_image = is_webp(src)
+            if is_image:
+                ImageDao().add_webp_image(url, src)
 
         return StreamingResponse(BytesIO(src), media_type="image/webp")
     except Exception as e:
@@ -106,13 +111,18 @@ async def get_apng(image_id: str):
 @app.get("/api/svg/{image_id}")
 async def get_svg(image_id: str):
     try:
-        url = f"https://ipfs.filebase.io/ipfs/{image_id}"
+        url = f"https://ipfs.io/ipfs/{image_id}"
         src = ImageDao().get_svg_image(url)
 
         if src is None:
             svg_bytes = ImagesApi().get_image_src(url)
             src = process_svg(svg_bytes)
-            ImageDao().add_svg_image(url, src)
+
+            is_image = is_svg(src)
+
+            if is_image:
+                ImageDao().add_svg_image(url, src)
+
 
         return StreamingResponse(BytesIO(src), media_type="image/svg+xml")
     except Exception as e:

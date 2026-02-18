@@ -2,6 +2,11 @@ import io
 from apng import APNG
 
 
+def is_png(image_bytes):
+    """Checks if the byte stream starts with the PNG magic number."""
+    # PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    return image_bytes.startswith(b'\x89PNG\r\n\x1a\n')
+
 def is_apng(image_bytes):
     try:
         buffer = io.BytesIO(image_bytes)
