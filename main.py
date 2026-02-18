@@ -9,10 +9,10 @@ from utils.caching.prefetching import prefetch
 
 
 async def main():
-    await prefetch()
-    # Base.metadata.create_all(db_manager.engine)
-    # server_task = asyncio.to_thread(start_http_server)
-    # await asyncio.gather(server_task)
+    # await prefetch()
+    Base.metadata.create_all(db_manager.engine)
+    server_task = asyncio.to_thread(start_http_server)
+    await asyncio.gather(server_task)
 
 
 if __name__ == '__main__':
