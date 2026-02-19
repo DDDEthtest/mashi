@@ -7,6 +7,7 @@ from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_RO
     APPROVALS_CHANNEL_ID
 from data.postgres.daos.reactions_dao import ReactionsDao
 from services.caching_service import CachingService
+from services.notifications_service import notify_android_users
 
 
 class MashiBot(commands.Bot):
@@ -50,7 +51,19 @@ class MashiBot(commands.Bot):
 
             await channel.send(f"{role.mention}", embed=embed, allowed_mentions=discord.AllowedMentions(roles=True))
 
-            await CachingService.instance().fetch_and_cache_item(data['docId'])
+            if is_release:
+                listing = data.get("listing", {})
+                android_title = f"{data['title']} by {data['artistName']} is out"
+                android_body = f"""Price: {listing["priceMatic"]}USDC
+Supply: {listing["maxSupply"]}
+Max per-wallet: {listing["maxPerWallet"]}"""
+                notify_android_users(
+                    title=android_title,
+                    body=android_body,
+                    listing_id=data['docId']
+                )
+
+                await CachingService.instance().fetch_and_cache_item(data['docId'])
         except Exception as e:
             print(e)
             channel = self.instance().get_channel(TEST_CHANNEL_ID)
