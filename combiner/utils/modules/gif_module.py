@@ -12,7 +12,7 @@ def extract_first_gif_frame_as_png(gif_bytes: bytes) -> bytes:
             img.seek(0)  # first frame
 
             # Convert to RGB to avoid palette issues
-            frame = img.convert("RGB")
+            frame = img.convert("RGBA")
 
             output = io.BytesIO()
             frame.save(output, format="PNG")
