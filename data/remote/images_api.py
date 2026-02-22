@@ -18,5 +18,19 @@ class ImagesApi:
                 print(e)
                 continue
 
+        for i in range(5):
+            try:
+                res = requests.get(image_url.replace("ipfs.", "ipfs.filebase."))
+
+                if res.status_code != 200:
+                    time.sleep(1)
+                    continue
+
+                return res.content
+
+            except Exception as e:
+                print(e)
+                continue
+
         return None
 
