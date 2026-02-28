@@ -8,7 +8,7 @@ DEFAULT_TRAIT_HEIGHT = 600 * 2
 ANIM_STEP = 0.03
 
 #other
-MAX_GENERATIONS = 10
+MAX_GENERATIONS = 20
 LAYER_ORDER = [
     "background",
     "hair_back",

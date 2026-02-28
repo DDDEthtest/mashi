@@ -30,7 +30,7 @@ class LeaderboardView(discord.ui.View):
                 count = entry['reaction_count']
 
                 # Using the ID directly in a mention format <@ID>
-                # This is much faster than 'await bot.fetch_user' because it
+                # This is much faster than 'await mashi.fetch_user' because it
                 # doesn't require an API call for every single row.
                 description_lines.append(f"{i}. <@{user_id}> : 🔥 x {count}")
 

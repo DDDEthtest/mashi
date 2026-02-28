@@ -7,10 +7,11 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
 
 from balancer.balancer import Balancer
-from bot.bot import MashiBot
+from bots.contest.contest_bot import ContestBot
+from bots.mashi.mashi_bot import MashiBot
 from combiner.utils.modules.svg_module import is_svg
 from combiner.utils.modules.webp_module import is_webp
-from configs.config import DISCORD_TOKEN, HTTP_PORT
+from configs.config import DISCORD_TOKEN, HTTP_PORT, CONTEST_DISCORD_TOKEN
 from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
 from utils.converters.apng_converter import apng_bytes_to_webp_bytes
@@ -30,6 +31,8 @@ app.add_middleware(
 async def startup():
     bot = MashiBot()
     asyncio.create_task(bot.start(DISCORD_TOKEN))
+    contest_bot = ContestBot()
+    asyncio.create_task(contest_bot.start(CONTEST_DISCORD_TOKEN))
 
 
 @app.post("/api/mashi/release_notify")
