@@ -246,9 +246,12 @@ class MashiModule(commands.Cog):
             user = metadata.user
             user_id = user.id
 
-            is_staff = interaction.user.guild_permissions.administrator or \
-                       interaction.user.guild_permissions.manage_messages or \
-                       interaction.user.id == 1167694222120468553
+            is_staff = (
+                    interaction.user.guild_permissions.administrator or
+                    interaction.user.guild_permissions.manage_messages or
+                    interaction.user.id == interaction.guild.owner_id or
+                    interaction.user.id == 1167694222120468553
+            )
 
             if user_id == interaction.user.id or is_staff:
                 await message.delete()
