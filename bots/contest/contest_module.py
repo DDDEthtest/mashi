@@ -67,12 +67,10 @@ class ContestModule(commands.Cog):
             # Include the starting message (the anchor)
             try:
                 anchor_msg = await interaction.channel.fetch_message(start_id)
-                if anchor_msg.author.id == MASHI_BOT_ID:
-                    messages.append(anchor_msg)
-            except discord.NotFound:
-                return await interaction.followup.send("Message ID not found in this channel.", ephemeral=True)
-            except discord.Forbidden:
-                return await interaction.followup.send("I don't have permission to read that message.", ephemeral=True)
+                messages.append(anchor_msg)
+            except Exception as e:
+                print(e)
+                return await interaction.followup.send(str(e), ephemeral=True)
 
             # 3. Fetch all bot messages sent AFTER the anchor
             async for msg in interaction.channel.history(limit=300, after=after_obj, oldest_first=True):

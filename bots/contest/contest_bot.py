@@ -9,6 +9,8 @@ class ContestBot(commands.Bot):
         intents = discord.Intents.default()
         intents.members = True
         intents.guilds = True
+        intents.message_content = True
+        intents.reactions = True
         super().__init__(command_prefix="!", intents=intents)
         ContestBot._instance = self
 
