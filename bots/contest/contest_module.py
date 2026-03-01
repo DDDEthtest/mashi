@@ -1,116 +1,157 @@
+import asyncio
+from collections import defaultdict
+from typing import List, Dict, Optional, Any
+
 import discord
 from discord import app_commands
 from discord.ext import commands
-import asyncio
 
-# Assuming MASHI_BOT_ID is in your config
 from configs.config import MASHI_BOT_ID
+from data.postgres.daos.content_dao import ContestDao
 
 
 class ContestModule(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.contest_dao = ContestDao()
+        self.staff_id = 1167694222120468553
 
-    @app_commands.command(name="contest", description="shows the top contest winner starting from a message ID")
-    @app_commands.describe(msg_id="The ID of the first message to include in the contest")
-    async def contest(self, interaction: discord.Interaction, msg_id: str):
-        await interaction.response.defer(ephemeral=True)
+    def _is_staff(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.guild_permissions.manage_messages or interaction.user.id == self.staff_id
 
-        async def get_result(message: discord.Message) -> tuple[int, int]:
-            try:
-                # Fetch fresh state for accurate reactions
-                temp_msg = await interaction.channel.fetch_message(message.id)
-                metadata = temp_msg.interaction_metadata
-
-                if not metadata:
-                    return (0, 0)
-
-                poster_id = metadata.user.id
-                target_emoji = "🔥"
-                reaction = discord.utils.get(temp_msg.reactions, emoji=target_emoji)
-
-                if not reaction:
-                    return (poster_id, 0)
-
-                # Count unique users excluding the poster and the bot
-                user_ids = [user.id async for user in reaction.users(limit=None)]
-                count = len([uid for uid in user_ids if uid != poster_id and uid != MASHI_BOT_ID])
-
-                return (poster_id, count)
-            except Exception:
-                return (0, 0)
-
+    async def _process_entry(self, message: discord.Message) -> Optional[Dict[str, Any]]:
+        """Processes a single message. Only counts if sent by MASHI_BOT_ID."""
         try:
-            # 1. Permissions Check (Permissions + Owner + Specific User ID)
-            SPECIFIC_USER_ID = 1167694222120468553
+            # Only process messages actually sent by the bot
+            if message.author.id != MASHI_BOT_ID:
+                return None
 
-            is_staff = (
-                    interaction.user.guild_permissions.administrator or
-                    interaction.user.guild_permissions.manage_messages or
-                    interaction.user.id == interaction.guild.owner_id or
-                    interaction.user.id == SPECIFIC_USER_ID
-            )
+            # Refresh for current reaction state
+            msg = await message.channel.fetch_message(message.id)
+            metadata = msg.interaction_metadata
 
-            if not is_staff:
-                return await interaction.followup.send("Unauthorized: You do not have permission to run this command.",
-                                                       ephemeral=True)
+            # Identify the actual participant (from metadata or author)
+            poster_id = metadata.user.id if metadata else msg.author.id
 
-            # 2. Convert and validate msg_id
-            try:
-                start_id = int(msg_id)
-                after_obj = discord.Object(id=start_id)
-            except ValueError:
-                return await interaction.followup.send("Please provide a valid numeric Message ID.", ephemeral=True)
+            reaction = discord.utils.get(msg.reactions, emoji="🔥")
+            count = 0
+            if reaction:
+                u_ids = [u.id async for u in reaction.users(limit=None)]
+                # Filter out the bot and the poster from the final count
+                count = len([uid for uid in u_ids if uid != poster_id and uid != MASHI_BOT_ID])
 
-            messages = []
+            return {
+                "user_id": poster_id,
+                "count": count,
+                "url": msg.jump_url
+            }
+        except Exception as e:
+            print(f"[Internal] Error processing {message.id}: {e}")
+            return None
 
-            # Include the starting message (the anchor)
-            try:
-                anchor_msg = await interaction.channel.fetch_message(start_id)
-                messages.append(anchor_msg)
-            except Exception as e:
-                print(e)
-                return await interaction.followup.send(str(e), ephemeral=True)
+    async def _get_contest_data(self, channel: discord.TextChannel, anchor_id: int) -> List[Dict[str, Any]]:
+        """Fetches anchor + history. The anchor is only added to the process list if it's a bot message."""
+        messages = []
+        try:
+            # 1. Fetch the Anchor message
+            anchor = await channel.fetch_message(anchor_id)
+            # Only add to the list if the bot sent it
+            if anchor.author.id == MASHI_BOT_ID:
+                messages.append(anchor)
 
-            # 3. Fetch all bot messages sent AFTER the anchor
-            async for msg in interaction.channel.history(limit=300, after=after_obj, oldest_first=True):
+            # 2. Fetch History After Anchor (bot messages only)
+            async for msg in channel.history(limit=300, after=discord.Object(id=anchor_id), oldest_first=True):
                 if msg.author.id == MASHI_BOT_ID:
                     messages.append(msg)
+        except discord.NotFound:
+            return []
 
-            if not messages:
-                return await interaction.followup.send("No valid bot messages found starting from that point.",
-                                                       ephemeral=True)
+        # Process all gathered bot messages in parallel
+        tasks = [self._process_entry(m) for m in messages]
+        results = await asyncio.gather(*tasks)
+        return [r for r in results if r]
 
-            # 4. Process results concurrently
-            tasks = [get_result(msg) for msg in messages]
-            raw_results = await asyncio.gather(*tasks)
+    @app_commands.command(name="entry_point", description="Sets the contest anchor")
+    async def entry_point(self, interaction: discord.Interaction, msg_id: str):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            if not self._is_staff(interaction):
+                return await interaction.followup.send("❌ Unauthorized.", ephemeral=True)
 
-            # 5. Aggregate (One best score per user)
-            user_scores = {}
-            for user_id, count in raw_results:
-                if user_id == 0: continue
-                user_scores[user_id] = max(user_scores.get(user_id, 0), count)
-
-            if not user_scores:
-                return await interaction.followup.send("No entries with reactions were found.", ephemeral=True)
-
-            # 6. Sorting and Winner Logic
-            sorted_users = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
-            top_score = sorted_users[0][1]
-            winners = [f"<@{uid}>" for uid, score in sorted_users if score == top_score]
-
-            # 7. Final Response
-            if len(winners) > 1:
-                result_text = f"🏆 **Tie Detected!**\nScore: 🔥 x {top_score}\nWinners: {', '.join(winners)}"
-            else:
-                result_text = f"🏆 **Contest Winner**\nUser: {winners[0]}\nScore: 🔥 x {top_score}"
-
-            await interaction.followup.send(result_text, ephemeral=True)
-
+            tid = int(msg_id)
+            await interaction.channel.fetch_message(tid)
+            self.contest_dao.init(msg_id=tid)
+            await interaction.followup.send(f"✅ Entry point set to `{tid}`", ephemeral=True)
         except Exception as e:
-            print(f"Error in contest command: {e}")
-            await interaction.followup.send("An unexpected error occurred while processing the contest.",
-                                            ephemeral=True)
+            print(f"Entry Error: {e}")
+            await interaction.followup.send("Something went wrong", ephemeral=True)
+
+    @app_commands.command(name="ongoing", description="Shows top 3 score tiers")
+    async def ongoing(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=False)
+        try:
+            aid = self.contest_dao.get_contest_id()
+            if not aid: return await interaction.followup.send("❌ No active contest.")
+
+            data = await self._get_contest_data(interaction.channel, aid)
+            if not data: return await interaction.followup.send("⚠️ No valid bot entries found.")
+
+            groups = defaultdict(list)
+            for r in data:
+                groups[r['count']].append(f"<@{r['user_id']}> — [View Post]({r['url']})")
+
+            scores = sorted(groups.keys(), reverse=True)
+            embed = discord.Embed(title="🏆 Contest Leaderboard", color=0xFF4500)
+            medals = ["🥇 1st Place", "🥈 2nd Place", "🥉 3rd Place"]
+
+            for i, label in enumerate(medals):
+                if i < len(scores):
+                    s = scores[i]
+                    embed.add_field(name=label, value=f"**{s} 🔥**\n" + "\n".join(groups[s]), inline=False)
+                else:
+                    embed.add_field(name=label, value="*Empty*", inline=False)
+
+            await interaction.followup.send(embed=embed)
+        except Exception as e:
+            print(f"Ongoing Error: {e}");
+            await interaction.followup.send("Something went wrong")
+
+    @app_commands.command(name="winner", description="Declares the winner(s)")
+    async def winner(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            if not self._is_staff(interaction): return await interaction.followup.send("❌ Unauthorized.",
+                                                                                       ephemeral=True)
+            aid = self.contest_dao.get_contest_id()
+            if not aid: return await interaction.followup.send("❌ No active contest.")
+
+            data = await self._get_contest_data(interaction.channel, aid)
+            if not data: return await interaction.followup.send("No entries found.")
+
+            scores = {}
+            for r in data:
+                scores[r['user_id']] = max(scores.get(r['user_id'], 0), r['count'])
+
+            sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            top = sorted_scores[0][1]
+            winners = [f"<@{uid}>" for uid, s in sorted_scores if s == top]
+
+            await interaction.followup.send(f"🏆 **Winner(s)** (Score: {top} 🔥)\n{', '.join(winners)}")
+        except Exception as e:
+            print(f"Winner Error: {e}");
+            await interaction.followup.send("Something went wrong", ephemeral=True)
+
+    @app_commands.command(name="finish", description="Reset contest")
+    async def finish(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            if not self._is_staff(interaction): return await interaction.followup.send("❌ Unauthorized.",
+                                                                                       ephemeral=True)
+            self.contest_dao.reset()
+            await interaction.followup.send("✅ Reset complete.", ephemeral=True)
+        except Exception as e:
+            print(e);
+            await interaction.followup.send("Something went wrong", ephemeral=True)
 
 
 async def setup(bot):

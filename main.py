@@ -5,7 +5,7 @@ from data.postgres.postgres_manager import db_manager, Base
 from data.postgres.entities.user import User
 from data.postgres.entities.mashup import Mashup
 from data.postgres.entities.image import Image
-from utils.caching.prefetching import prefetch
+from data.postgres.entities.contest import Contest
 
 
 async def main():
