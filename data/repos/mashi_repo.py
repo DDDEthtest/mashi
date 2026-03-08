@@ -61,7 +61,7 @@ class MashiRepo:
             print(e)
             return None
 
-    async def get_composite(self, mashup: dict, img_type=0, is_higher_res: int = False, is_longer: bool = False,
+    async def get_composite(self, mashup: dict, img_type=0, is_higher_res: bool = False, is_longer: bool = False,
                          is_smoother: bool = False, playback_speed: int = 0) -> bytes | MashupError:
         try:
             assets = mashup.get("assets", [])
@@ -70,7 +70,7 @@ class MashiRepo:
             if not assets:
                 return MashupError(error_msg="No saved mashup")
 
-            # get assets in parallel
+            # Get assets in parallel
             tasks = [asyncio.to_thread(self._get_asset, asset, colors) for asset in assets]
             results = await asyncio.gather(*tasks)
 
@@ -80,13 +80,24 @@ class MashiRepo:
                     name, src = result
                     srcs[name] = src
 
+            # Filter and order traits based on LAYER_ORDER
             ordered_traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
 
+            # Logic Switcher based on img_type
             if img_type == 0:
+                # Standard Static PNG
                 img_bytes = self._png_combiner.get_combined_img_bytes(
                     ordered_traits,
                 )
+            elif img_type == 2:
+                # NEW: Animated Circle APNG (256x256 with Cropping)
+                # We ignore speed/resolution flags as per your generateApng cleanup
+                img_bytes = await GifBridgeService.get_instance().create_gif(
+                    ordered_traits,
+                    is_apng=True
+                )
             else:
+                # Standard GIF logic
                 if playback_speed == 0:
                     is_faster = False
                     is_slower = False
@@ -97,7 +108,15 @@ class MashiRepo:
                     is_faster = False
                     is_slower = True
 
-                img_bytes = await GifBridgeService.get_instance().create_gif(ordered_traits, is_higher_res=is_higher_res, is_smoother=is_smoother, is_longer=is_longer, is_faster=is_faster, is_slower=is_slower)
+                img_bytes = await GifBridgeService.get_instance().create_gif(
+                    ordered_traits,
+                    is_higher_res=is_higher_res,
+                    is_smoother=is_smoother,
+                    is_longer=is_longer,
+                    is_faster=is_faster,
+                    is_slower=is_slower,
+                    is_apng=False
+                )
 
             if img_bytes:
                 return img_bytes
@@ -105,5 +124,5 @@ class MashiRepo:
                 raise Exception("Failed to generate composite image")
 
         except Exception as e:
-            print(e)
+            print(f"Error in get_composite: {e}")
             return MashupError(error_msg="Internal error. We're working on fix", data=mashup)

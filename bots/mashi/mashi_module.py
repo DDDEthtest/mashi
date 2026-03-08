@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from balancer.balancer import Balancer
 from bots.mashi.views.leaderboard_view import LeaderboardView
+from combiner.gifs.services.gif_bridge_service import GifBridgeService
 from configs.config import TEST_CHANNEL_ID
 from data.postgres.daos.user_dao import UserDao
 from data.postgres.daos.reactions_dao import ReactionsDao
@@ -74,6 +75,67 @@ class MashiModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
+
+    @app_commands.command(name="pfp_template", description="Generates an animated gif template")
+    async def pfp(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer(ephemeral=False)
+
+            user_id = interaction.user.id
+            wallet = self._user_dao.get_wallet(user_id)
+
+            if not wallet:
+                await interaction.followup.send(
+                    "Please connect your wallet using `/connect_wallet` first.",
+                    ephemeral=True
+                )
+                return
+
+            # Use the Balancer singleton to handle the request with img_type=2
+            # All extra flags (smoother, higher_res) are ignored by the APNG logic in the Repo/JS
+            data = await Balancer.instance().get_composite(
+                wallet=wallet,
+                img_type=2
+            )
+
+            # Error handling for MashupError objects or None
+            if not data or not isinstance(data, bytes):
+                msg = "Failed to generate PFP."
+                if hasattr(data, 'error_msg'):
+                    msg = data.error_msg
+
+                    # If there is debug data, send it to the test channel
+                    if hasattr(data, 'data') and data.data:
+                        test_channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
+                        await test_channel.send(f"Error for {interaction.user.name}: {msg}\nData: {data.data}")
+
+                await interaction.followup.send(msg, ephemeral=True)
+                return
+
+            # Prepare the file (APNGs use the .png extension for Discord compatibility)
+            buffer = BytesIO(data)
+            filename = "pfp.gif"
+            file = discord.File(fp=buffer, filename=filename)
+
+            embed = discord.Embed(
+                title=f"{interaction.user.display_name}'s mashup",
+                color=discord.Color.random()
+            )
+            embed.set_image(url=f"attachment://{filename}")
+            embed.set_footer(text="© 2026 mash-it")
+
+            await interaction.followup.send(embed=embed, file=file)
+
+        except Exception as e:
+            # Emergency logging to test channel
+            try:
+                test_channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
+                await test_channel.send(f"🔥 Critical /pfp error: {e}")
+            except:
+                print(f"Logging failed: {e}")
+
+            await interaction.followup.send("Something went wrong.", ephemeral=True)
+
 
     @app_commands.command(name="mashi", description="Generates mashup")
     @app_commands.describe(img_type="Static/Animated")
