@@ -2,14 +2,12 @@ import io
 from apng import APNG
 
 
-def is_png(image_bytes):
-    """Checks if the byte stream starts with the PNG magic number."""
-    # PNG signature: 89 50 4E 47 0D 0A 1A 0A
-    return image_bytes.startswith(b'\x89PNG\r\n\x1a\n')
+def is_png(data: bytes) -> bool:
+    return data.startswith(b'\x89PNG\r\n\x1a\n')
 
-def is_apng(image_bytes):
+def is_apng(data: bytes) -> bool:
     try:
-        buffer = io.BytesIO(image_bytes)
+        buffer = io.BytesIO(data)
         im = APNG.open(buffer)
 
         return len(im.frames) > 1
@@ -18,11 +16,8 @@ def is_apng(image_bytes):
         return False
 
 
-def get_apng_t(image_bytes) -> float:
-    """
-    Returns number of frames, total duration in seconds
-    """
-    im = APNG.open(io.BytesIO(image_bytes))
+def get_apng_duration(data: bytes) -> float:
+    im = APNG.open(io.BytesIO(data))
     total_duration = 0
 
     for png, control in im.frames:

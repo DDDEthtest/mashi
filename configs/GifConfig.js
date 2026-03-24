@@ -9,7 +9,7 @@ const defaultTraitHeight = 600;
 const frameDelayMs = 60;
 const captureFps = 16.67;
 const playbackFps = 16.67;
-const limitT = 5;
+const limitT = 3;
 
 module.exports = {
     PORT,

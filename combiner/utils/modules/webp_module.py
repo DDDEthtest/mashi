@@ -4,19 +4,12 @@ import webp
 
 
 def is_webp(data: bytes) -> bool:
-    """
-    Detects whether the given bytes represent a WebP file.
-    """
     return data.startswith(b"RIFF") and data[8:12] == b"WEBP"
 
 
-def extract_first_webp_frame_as_png(webp_bytes: bytes) -> bytes:
-    """
-    Extracts the first frame of a (possibly animated) WebP
-    and returns it as PNG bytes.
-    """
+def extract_first_webp_frame(data: bytes) -> bytes:
     try:
-        with Image.open(io.BytesIO(webp_bytes)) as img:
+        with Image.open(io.BytesIO(data)) as img:
             img.seek(0)
 
             frame = img.convert("RGBA")
@@ -25,15 +18,10 @@ def extract_first_webp_frame_as_png(webp_bytes: bytes) -> bytes:
 
             return output.getvalue()
     except Exception as e:
-        print(e)
         return b""
 
 
-def get_webp_t(image_bytes: bytes) -> float:
-    """
-    Calculates the total duration of a WebP animation from raw bytes
-    using the libwebp wrapper.
-    """
+def get_webp_duration(image_bytes: bytes) -> float:
     try:
         # Load raw bytes into the WebP data structure
         webp_data = webp.WebPData.from_buffer(image_bytes)

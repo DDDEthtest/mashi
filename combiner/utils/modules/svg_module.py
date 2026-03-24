@@ -6,12 +6,12 @@ from PIL import Image
 resample_mode = Image.Resampling.LANCZOS
 
 
-def is_svg(svg_bytes) -> bool:
-    return b"<svg" in svg_bytes.lstrip()
+def is_svg(data: bytes) -> bool:
+    return b"<svg" in data.lstrip()
 
 
-def remove_redundant_info(svg_bytes) -> bytes:
-    svg = svg_bytes.decode("utf-8")
+def remove_redundant_info(data: bytes) -> bytes:
+    svg = data.decode("utf-8")
     svg = re.sub(r'^\s*<\?xml[^>]*\?>', '', svg, flags=re.MULTILINE | re.IGNORECASE)
     svg = re.sub(r'<!DOCTYPE[^>]*>', '', svg, flags=re.IGNORECASE)
     svg = re.sub(r'serif:[^"]*"[^"]*"', '', svg)
@@ -24,8 +24,8 @@ def remove_redundant_info(svg_bytes) -> bytes:
     return svg.lstrip().replace('\n', '').encode("utf-8")
 
 
-def replace_colors(svg_bytes, body_color: str, eyes_color: str, hair_color: str) -> bytes:
-    svg_str = svg_bytes.decode("utf-8")
+def replace_colors(data: bytes, body_color: str, eyes_color: str, hair_color: str) -> bytes:
+    svg_str = data.decode("utf-8")
     # replace body color
     svg_str = re.sub(
         r"#00ff00|#0f0\b|\blime\b|rgb\s*\(\s*0\s*,\s*255\s*,\s*0\s*\)",
@@ -46,10 +46,10 @@ def replace_colors(svg_bytes, body_color: str, eyes_color: str, hair_color: str)
     return svg_str.replace('\n', '').encode("utf-8")
 
 
-def svg_bytes_to_png(svg_bytes, target_size=None):
+def convert_svg_to_png(data: bytes, target_size=None):
     try:
-        svg_bytes = remove_redundant_info(svg_bytes)
-        png_bytes = cairosvg.svg2png(bytestring=svg_bytes)
+        data = remove_redundant_info(data)
+        png_bytes = cairosvg.svg2png(bytestring=data)
 
         img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
         if target_size:
