@@ -1,11 +1,11 @@
 import discord
 from discord.ext import commands
-from bots.mashi.message_module import get_notify_embed
-from configs.config import RELEASES_CHANNEL_ID, TEST_CHANNEL_ID, NEW_RELEASES_ROLE_ID, APPROVALS_ROLE_ID, \
-    APPROVALS_CHANNEL_ID
+from bots.mashi.modules.message_module import get_notify_embed
+from configs.bot_config import RELEASES_CHANNEL_ID, APPROVALS_CHANNEL_ID, RELEASES_ROLE_ID, APPROVALS_ROLE_ID, \
+    TEST_CHANNEL_ID
 from data.postgres.daos.reactions_dao import ReactionsDao
-from services.caching_service import CachingService
-from services.notifications_service import notify_android_users
+from services.caching import CachingService
+from services.notifications import notify_android_users
 
 
 class MashiBot(commands.Bot):
@@ -40,7 +40,7 @@ class MashiBot(commands.Bot):
 
             all_roles = await channel.guild.fetch_roles()
             if is_release:
-                role = discord.utils.get(all_roles, id=int(NEW_RELEASES_ROLE_ID))
+                role = discord.utils.get(all_roles, id=int(RELEASES_ROLE_ID))
             else:
                 role = discord.utils.get(all_roles, id=int(APPROVALS_ROLE_ID))
 
@@ -130,5 +130,6 @@ Max per-wallet: {listing["maxPerWallet"]}"""
             pass
 
     async def setup_hook(self):
-        await self.load_extension("bots.mashi.mashi_module")
+        await self.load_extension("bots.mashi.modules.mashi_module")
+        await self.load_extension("bots.mashi.modules.wallet_module")
         await self.tree.sync()

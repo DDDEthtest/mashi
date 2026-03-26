@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, LargeBinary, BigInteger
+from sqlalchemy import Column, BigInteger
 from data.postgres.postgres_manager import Base
 
 

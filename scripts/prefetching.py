@@ -1,10 +1,7 @@
 import asyncio
 from data.remote.mashit_api import MashitApi
 from data.postgres.postgres_manager import db_manager, Base
-from data.postgres.entities.user import User
-from data.postgres.entities.mashup import Mashup
-from data.postgres.entities.image import Image
-from services.caching_service import CachingService
+from services.caching import CachingService
 
 Base.metadata.create_all(db_manager.engine)
 

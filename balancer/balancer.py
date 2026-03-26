@@ -1,5 +1,6 @@
 import asyncio
 from configs.img_config import MAX_GENERATIONS
+from data.models.download_type import DownloadType
 from data.remote.images_api import ImagesApi
 from data.remote.mashi_api import MashiApi
 from data.repos.mashi_repo import MashiRepo
@@ -20,10 +21,7 @@ class Balancer:
             cls._instance = Balancer()
         return cls._instance
 
-    async def get_composite(self, wallet: str, img_type: int = 0, is_higher_res: bool = False,
-                            is_longer: bool = False, is_smoother: bool = False,
-                            playback_speed: int = 0):
-        # Acquire semaphore to limit concurrency (max concurrent Puppeteer/FFmpeg instances)
+    async def get_composite(self, wallet: str, download_type: DownloadType = DownloadType.PNG):
         async with self._composite_semaphore:
             try:
                 # Fetch mashup data (assets, colors) from the API
@@ -33,10 +31,6 @@ class Balancer:
                 return await self.mashi_repo.get_composite(
                     mashup=mashup,
                     img_type=img_type,
-                    is_higher_res=is_higher_res,
-                    is_longer=is_longer,
-                    is_smoother=is_smoother,
-                    playback_speed=playback_speed
                 )
 
             except Exception as e:

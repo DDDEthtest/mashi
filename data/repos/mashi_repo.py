@@ -1,14 +1,15 @@
 import asyncio
 
-from combiner.pngs.combiners.png_combiner import PngCombiner
+from primary.combiner.pngs.combiners.png_combiner import PngCombiner
 from combiner.utils.modules.apng_module import is_png, is_apng
 from combiner.utils.modules.gif_module import is_gif
 from combiner.utils.modules.webp_module import is_webp
 from configs.img_config import LAYER_ORDER
+from data.models.download_type import DownloadType
 from data.models.mashup_error import MashupError
 from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
-from combiner.gifs.services.gif_bridge_service import GifBridgeService
+from primary.combiner.gifs.services.gif_bridge_service import GifBridgeService
 from combiner.utils.modules.svg_module import replace_svg_colors, is_svg
 
 
@@ -61,8 +62,7 @@ class MashiRepo:
             print(e)
             return None
 
-    async def get_composite(self, mashup: dict, img_type=0, is_higher_res: bool = False, is_longer: bool = False,
-                         is_smoother: bool = False, playback_speed: int = 0) -> bytes | MashupError:
+    async def get_composite(self, mashup: dict, download_type: DownloadType = DownloadType.PNG) -> bytes | MashupError:
         try:
             assets = mashup.get("assets", [])
             colors = mashup.get("colors", {})
@@ -81,47 +81,17 @@ class MashiRepo:
                     srcs[name] = src
 
             # Filter and order traits based on LAYER_ORDER
-            ordered_traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
+            traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
 
-            # Logic Switcher based on img_type
-            if img_type == 0:
-                # Standard Static PNG
-                img_bytes = self._png_combiner.get_combined_img_bytes(
-                    ordered_traits,
-                )
-            elif img_type == 2:
-                # NEW: Animated Circle APNG (256x256 with Cropping)
-                # We ignore speed/resolution flags as per your generateApng cleanup
-                img_bytes = await GifBridgeService.get_instance().create_gif(
-                    ordered_traits,
-                    is_apng=True
-                )
+            if download_type is DownloadType.PNG:
+                data: bytes = self._png_combiner.get_combined_img_bytes(traits)
             else:
-                # Standard GIF logic
-                if playback_speed == 0:
-                    is_faster = False
-                    is_slower = False
-                elif playback_speed == 1:
-                    is_faster = True
-                    is_slower = False
-                else:
-                    is_faster = False
-                    is_slower = True
+                data: bytes = await GifBridgeService.get_instance().generate_gif(traits)
 
-                img_bytes = await GifBridgeService.get_instance().create_gif(
-                    ordered_traits,
-                    is_higher_res=is_higher_res,
-                    is_smoother=is_smoother,
-                    is_longer=is_longer,
-                    is_faster=is_faster,
-                    is_slower=is_slower,
-                    is_apng=False
-                )
+            if data:
+                return data
 
-            if img_bytes:
-                return img_bytes
-            else:
-                raise Exception("Failed to generate composite image")
+            raise Exception("Failed to generate composite image")
 
         except Exception as e:
             print(f"Error in get_composite: {e}")

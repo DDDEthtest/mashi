@@ -1,13 +1,12 @@
 import asyncio
 
-from combiner.utils.modules.apng_module import is_png, is_apng
-from combiner.utils.modules.gif_module import is_gif
-from combiner.utils.modules.svg_module import is_svg
-from combiner.utils.modules.webp_module import is_webp
+from data.models.image_type import ImageType
 from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
 from data.remote.mashi_api import MashiApi
 from data.remote.mashit_api import MashitApi
+from utils.helpers.image_helper import get_image_type
+
 
 class CachingService:
     _instance = None
@@ -43,13 +42,9 @@ class CachingService:
             if src is None:
                 src = await asyncio.to_thread(self._images_api.get_image_src, url)
 
-                is_image = is_png(src) or \
-                    is_apng(src) or \
-                    is_svg(src) or \
-                    is_gif(src) or \
-                    is_webp(src)
+                image_type = get_image_type(src)
 
-                if is_image:
+                if image_type is not ImageType.UNKNOWN:
                     await asyncio.to_thread(self._image_dao.add_image, url, src)
 
         except Exception as e:

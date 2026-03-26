@@ -2,11 +2,11 @@ import base64
 import uuid
 import httpx
 
-from configs.config import GIF_MAKER_SERVER_URI
-from combiner.utils.helpers.mime_type_helper import get_mime_type
-from combiner.utils.helpers.traits_helper import get_traits_info
-from combiner.utils.io.files import read_file, rm_dir, save_file
-from configs.config import PROJECT_ROOT
+from configs.remote_config import PROJECT_ROOT
+from configs.server_config import GIF_MAKER_SERVER_URI
+from utils.files import save_file, read_file, rm_dir
+from utils.helpers.mime_helper import get_mime
+from utils.helpers.traits_helper import get_durations
 
 
 class GifBridgeService:
@@ -25,20 +25,18 @@ class GifBridgeService:
             cls._instance = cls()
         return cls._instance
 
-    async def create_gif(self, traits_bytes: list, is_higher_res: bool = False, is_longer: bool = False,
-                         is_smoother: bool = False, is_faster: bool = False, is_slower: bool = False,
-                         is_apng: bool = False):
+    async def generate_gif(self, traits: list):
         gif_bytes = None
         temp_dir = PROJECT_ROOT / "temp"
         id_dir = temp_dir / str(uuid.uuid4())
 
-        total_ts = await get_traits_info(traits_bytes)
+        total_ts = await get_durations(traits)
         max_t = max(total_ts) if total_ts else 0
 
         id_dir.mkdir(exist_ok=True, parents=True)
-        for index, trait_bytes in enumerate(traits_bytes):
-            mime = get_mime_type(trait_bytes)
-            b64 = base64.b64encode(trait_bytes).decode("utf-8")
+        for index, data in enumerate(traits):
+            mime = get_mime(data)
+            b64 = base64.b64encode(data).decode("utf-8")
 
             # Save as trait_0, trait_1, etc.
             file_path = id_dir / str(index)
@@ -48,18 +46,7 @@ class GifBridgeService:
         payload = {
             "temp_dir": str(id_dir),
             "max_t": max_t,
-            "is_apng": is_apng
         }
-
-        # Only add extra flags if we are NOT doing an APNG
-        if not is_apng:
-            payload.update({
-                "is_higher_res": is_higher_res,
-                "is_longer": is_longer,
-                "is_smoother": is_smoother,
-                "is_faster": is_faster,
-                "is_slower": is_slower
-            })
 
         async with httpx.AsyncClient(timeout=None) as client:
             try:

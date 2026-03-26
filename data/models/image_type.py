@@ -6,3 +6,4 @@ class ImageType(Enum):
     GIF = "GIF"
     WEBP = "WEBP"
     SVG = "SVG"
+    UNKNOWN = "UNKNOWN"

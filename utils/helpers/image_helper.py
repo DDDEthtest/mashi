@@ -7,23 +7,27 @@ from data.models.image_type import ImageType
 
 # Type
 def get_image_type(data: bytes) -> ImageType:
-    if b"<svg" in data.lstrip():
-        return ImageType.SVG
+    try:
+        if b"<svg" in data.lstrip():
+            return ImageType.SVG
 
-    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
-        return ImageType.GIF
+        if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+            return ImageType.GIF
 
-    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
-        return ImageType.WEBP
+        if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+            return ImageType.WEBP
 
-    buffer = io.BytesIO(data)
-    im = APNG.open(buffer)
+        buffer = io.BytesIO(data)
+        im = APNG.open(buffer)
 
-    if len(im.frames) > 1:
-        return ImageType.APNG
+        if len(im.frames) > 1:
+            return ImageType.APNG
 
-    return ImageType.PNG
+        return ImageType.PNG
 
+    except Exception as e:
+        print(e)
+        return ImageType.UNKNOWN
 
 #
 def extract_first_frame(data: bytes) -> bytes:
