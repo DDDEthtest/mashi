@@ -6,11 +6,7 @@ from PIL import Image
 resample_mode = Image.Resampling.LANCZOS
 
 
-def is_svg(data: bytes) -> bool:
-    return b"<svg" in data.lstrip()
-
-
-def remove_redundant_info(data: bytes) -> bytes:
+def remove_redundant_metadata(data: bytes) -> bytes:
     svg = data.decode("utf-8")
     svg = re.sub(r'^\s*<\?xml[^>]*\?>', '', svg, flags=re.MULTILINE | re.IGNORECASE)
     svg = re.sub(r'<!DOCTYPE[^>]*>', '', svg, flags=re.IGNORECASE)
@@ -24,7 +20,7 @@ def remove_redundant_info(data: bytes) -> bytes:
     return svg.lstrip().replace('\n', '').encode("utf-8")
 
 
-def replace_colors(data: bytes, body_color: str, eyes_color: str, hair_color: str) -> bytes:
+def replace_svg_colors(data: bytes, body_color: str, eyes_color: str, hair_color: str) -> bytes:
     svg_str = data.decode("utf-8")
     # replace body color
     svg_str = re.sub(
@@ -48,7 +44,7 @@ def replace_colors(data: bytes, body_color: str, eyes_color: str, hair_color: st
 
 def convert_svg_to_png(data: bytes, target_size=None):
     try:
-        data = remove_redundant_info(data)
+        data = remove_redundant_metadata(data)
         png_bytes = cairosvg.svg2png(bytestring=data)
 
         img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")

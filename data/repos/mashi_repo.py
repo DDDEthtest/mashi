@@ -9,7 +9,7 @@ from data.models.mashup_error import MashupError
 from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
 from combiner.gifs.services.gif_bridge_service import GifBridgeService
-from combiner.utils.modules.svg_module import replace_colors, is_svg
+from combiner.utils.modules.svg_module import replace_svg_colors, is_svg
 
 
 class MashiRepo:
@@ -48,7 +48,7 @@ class MashiRepo:
 
 
             if is_svg(src):
-                src = replace_colors(
+                src = replace_svg_colors(
                     src,
                     body_color=colors.get("base"),
                     eyes_color=colors.get("eyes"),
