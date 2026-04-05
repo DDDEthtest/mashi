@@ -1,18 +1,17 @@
 const {chromium} = require('playwright');
 const path = require('path');
-const fs = require('fs');
 const {execSync} = require('child_process');
 const {
-    captureFps,
-    defaultGifWidth,
-    defaultGifHeight,
-    frameDelayMs,
-    playbackFps,
-    defaultTraitWidth,
-    defaultTraitHeight,
-    limitT
-} = require("../../../configs/GifConfig");
-const {readFilesAsStrings} = require('../../utils/io/Files');
+    GIF_WIDTH,
+    GIF_HEIGHT,
+    TRAIT_WIDTH,
+    TRAIT_HEIGHT,
+    FRAME_DELAY_MS,
+    CAPTURE_FPS,
+    PLAYBACK_FPS,
+    LENGTH_LIMIT_SEC
+} = require("../configs/GifConfig");
+const {readFilesAsStrings} = require('../utils/Files');
 
 let browserInstance = null;
 
@@ -35,21 +34,20 @@ async function getBrowser() {
  * Renders a specific range of frames for a GIF
  */
 async function renderFrameRange(
-    context, htmlContent, startFrame, endFrame, resourcesDir,
-    gifWidth, gifHeight, traitWidth, traitHeight, delayMs
+    context, htmlContent, startFrame, endFrame, resourcesDir
 ) {
     const page = await context.newPage();
     await page.setContent(htmlContent);
 
     // Image padding logic
     await page.evaluate(
-        ({traitWidth, traitHeight, gifWidth, gifHeight}) => {
+        () => {
             const imgs = Array.from(document.images);
             return Promise.all(
                 imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => img.onload = res))
             ).then(() => {
-                const padX = (gifWidth - traitWidth) / 2;
-                const padY = (gifHeight - traitHeight) / 2;
+                const padX = (GIF_WIDTH - TRAIT_WIDTH) / 2;
+                const padY = (GIF_HEIGHT - TRAIT_HEIGHT) / 2;
                 document.querySelectorAll('img').forEach(img => {
                     const ratio = img.naturalWidth / img.naturalHeight;
                     if (Math.abs(ratio - 0.75) > 0.01) {
@@ -57,8 +55,7 @@ async function renderFrameRange(
                     }
                 });
             });
-        },
-        {traitWidth, traitHeight, gifWidth, gifHeight}
+        }
     );
 
     const client = await page.context().newCDPSession(page);
@@ -66,7 +63,7 @@ async function renderFrameRange(
     // Fast-forward virtual time to the start frame
     await client.send('Emulation.setVirtualTimePolicy', {
         policy: 'advance',
-        budget: startFrame * delayMs
+        budget: startFrame * FRAME_DELAY_MS
     });
 
     for (let i = startFrame; i <= endFrame; i++) {
@@ -75,7 +72,7 @@ async function renderFrameRange(
 
         await client.send('Emulation.setVirtualTimePolicy', {
             policy: 'advance',
-            budget: delayMs
+            budget: FRAME_DELAY_MS
         });
     }
     await page.close();
@@ -84,66 +81,27 @@ async function renderFrameRange(
 /**
  * Generates a GIF using parallel page rendering and multi-threaded FFmpeg
  */
-async function generateGif(tempDir, t, isHigherRes, isLonger, isSmoother, isFaster, isSlower) {
+async function generateGif(tempDir, t) {
     const browser = await getBrowser();
 
     let maxT = t;
 
-    let gifWidth = defaultGifWidth;
-    let gifHeight = defaultGifHeight;
-    let traitWidth = defaultTraitWidth;
-    let traitHeight = defaultTraitHeight;
-
-    let captureMs = frameDelayMs;
-
-    let playFps = playbackFps;
-    let captFps = captureFps;
-
-    if (isHigherRes) {
-        gifHeight *= 2;
-        gifWidth *= 2;
-        traitWidth *= 2;
-        traitHeight *= 2;
-    }
-
-    if (isLonger) {
-        maxT *= 2;
-    }
-
-    if (isSmoother && !(isFaster || isSlower)) {
-        captureMs /= 2;
-        captFps *= 2;
-        playFps *= 2;
-        playFps = Math.round(playFps * 100) / 100;
-        captFps = Math.round(captFps * 100) / 100;
-    }
-
-    if (isFaster) {
-        playFps *= 2;
-        playFps = Math.round(playFps * 100) / 100;
-    }
-
-    if (isSlower) {
-        playFps /= 2;
-        playFps = Math.round(playFps * 100) / 100;
-    }
-
     const context = await browser.newContext({
-        viewport: {width: gifWidth, height: gifHeight}
+        viewport: {width: GIF_WIDTH, height: GIF_HEIGHT}
     });
 
     try {
-        if (maxT < limitT) {
-            maxT = Math.ceil(limitT / maxT) * maxT;
+        if (maxT < LENGTH_LIMIT_SEC) {
+            maxT = Math.ceil(LENGTH_LIMIT_SEC / maxT) * maxT;
         }
 
-        const totalFrames = Math.ceil(maxT * captFps);
+        const totalFrames = Math.ceil(maxT * CAPTURE_FPS);
         const imageUrls = await readFilesAsStrings(tempDir);
         const resourcesDir = tempDir;
 
         const htmlContent = `
         <html>
-          <body style="margin:0; width:${gifWidth}px; height:${gifHeight}px; background:transparent; overflow:hidden;">
+          <body style="margin:0; width:${GIF_WIDTH}px; height:${GIF_HEIGHT}px; background:transparent; overflow:hidden;">
             ${imageUrls.map((url, i) => `
               <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:${i};">
                 <img src="${url}" style="width:100%; height:100%; object-fit:contain;" />
@@ -158,12 +116,10 @@ async function generateGif(tempDir, t, isHigherRes, isLonger, isSmoother, isFast
         // Run both halves in parallel across two tabs
         await Promise.all([
             renderFrameRange(
-                context, htmlContent, 0, midPoint, resourcesDir,
-                gifWidth, gifHeight, traitWidth, traitHeight, captureMs
+                context, htmlContent, 0, midPoint, resourcesDir
             ),
             renderFrameRange(
-                context, htmlContent, midPoint + 1, totalFrames, resourcesDir,
-                gifWidth, gifHeight, traitWidth, traitHeight, captureMs
+                context, htmlContent, midPoint + 1, totalFrames, resourcesDir
             )
         ]);
 
@@ -176,7 +132,7 @@ async function generateGif(tempDir, t, isHigherRes, isLonger, isSmoother, isFast
         );
 
         execSync(
-            `ffmpeg -y -threads 0 -framerate ${playFps} -i "${resourcesDir}/frame_%03d.png" -i "${palettePath}" -filter_complex "[0:v]paletteuse=dither=none" "${gifPath}"`
+            `ffmpeg -y -threads 0 -framerate ${PLAYBACK_FPS} -i "${resourcesDir}/frame_%03d.png" -i "${palettePath}" -filter_complex "[0:v]paletteuse=dither=none" "${gifPath}"`
         );
 
         return gifPath;

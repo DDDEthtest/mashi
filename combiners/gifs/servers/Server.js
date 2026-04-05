@@ -1,6 +1,6 @@
 const http = require('http');
-const {PORT} = require('../../../configs/GifConfig');
-const {generateGif, generateApng} = require('../services/GifService');
+const {PORT} = require('../configs/ServerConfig');
+const {generateGif} = require('../services/Gif');
 
 
 async function startServer() {
@@ -15,27 +15,13 @@ async function startServer() {
 
                     const {
                         temp_dir: tempDir,
-                        max_t: maxT,
-                        is_apng: isApng
+                        max_t: maxT
                     } = data;
 
-                    let resultPath;
-
-                    if (isApng) {
-                        // Call the updated, simplified APNG function
-                        resultPath = await generateApng(tempDir, maxT);
-                    } else {
-                        // Call original GIF function with all flags
-                        resultPath = await generateGif(
-                            tempDir,
-                            maxT,
-                            data.is_higher_res,
-                            data.is_longer,
-                            data.is_smoother,
-                            data.is_faster,
-                            data.is_slower
-                        );
-                    }
+                    let resultPath = await generateGif(
+                        tempDir,
+                        maxT
+                    );
 
                     res.writeHead(200, {'Content-Type': 'text/plain'});
                     res.end(resultPath);

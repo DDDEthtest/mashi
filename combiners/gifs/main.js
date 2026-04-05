@@ -1,3 +1,3 @@
-const {startServer} = require('./combiner/gifs/servers/GifMakerServer');
+const {startServer} = require('./servers/Server');
 
 startServer();
