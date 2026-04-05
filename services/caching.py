@@ -1,79 +1,54 @@
 import asyncio
-
 from data.models.image_type import ImageType
 from data.postgres.daos.image_dao import ImageDao
-from data.remote.images_api import ImagesApi
-from data.remote.mashi_api import MashiApi
-from data.remote.mashit_api import MashitApi
+from data.remote.ipfs_api import get_image_src
+from data.remote.mashit_api import get_shop_item
 from utils.helpers.image_helper import get_image_type
 
 
-class CachingService:
-    _instance = None
+def _format_link(uri: str) -> str:
+    if not uri or not uri.startswith("ipfs://"):
+        return uri
 
-    def __init__(self):
-        # Initializing the APIs/DAOs
-        self._mashi_api = MashiApi()
-        self._mashit_api = MashitApi()
-        self._image_dao = ImageDao()
-        self._images_api = ImagesApi()
-        self.gateway = "https://ipfs.io/ipfs/"
-
-    @classmethod
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-
-    def _format_link(self, uri: str) -> str:
-        if not uri or not uri.startswith("ipfs://"):
-            return uri
-        return uri.replace("ipfs://", self.gateway)
-
-    async def _cache(self, url: str):
-
-        """
-        Helper to handle the logic.
-        Note: Using to_thread inside if the DAO/API calls are blocking.
-        """
-        try:
-            src = await asyncio.to_thread(self._image_dao.get_image, url)
-
-            if src is None:
-                src = await asyncio.to_thread(self._images_api.get_image_src, url)
-
-                image_type = get_image_type(src)
-
-                if image_type is not ImageType.UNKNOWN:
-                    await asyncio.to_thread(self._image_dao.add_image, url, src)
-
-        except Exception as e:
-            print(e)
+    return uri.replace("ipfs://", "https://ipfs.io/ipfs/")
 
 
-    async def fetch_and_cache_item(self, item_id: str):
-        try:
-            # 1. Fetch item details (blocking request -> thread)
-            response = await asyncio.to_thread(self._mashit_api.get_shop_item, item_id)
+async def _cache_async(url: str):
+    image_dao = ImageDao()
 
-            listing = response.get("listing", {})
-            metadata = listing.get("metadata", {})
-            assets = metadata.get("assets", [])
+    try:
+        src = await asyncio.to_thread(image_dao.get_image, url)
 
-            if not assets:
-                return None
+        if src is None:
+            src = await asyncio.to_thread(get_image_src, url)
 
-            # 2. Prepare async tasks for caching
-            tasks = []
-            for asset in assets:
-                url = self._format_link(asset.get("uri", ""))
-                # We call the async function directly here
-                tasks.append(self._cache(url))
+            image_type = get_image_type(src)
 
-            # 3. CRITICAL: Execute the tasks and wait for them to finish
-            if tasks:
-                await asyncio.gather(*tasks)
-                print(f"✅ Successfully cached assets for: {listing.get('title')}")
+            if image_type is not ImageType.UNKNOWN:
+                await asyncio.to_thread(image_dao.add_image, url, src)
 
-        except Exception as e:
-            print(f"❌ Failed to process item {item_id}: {e}")
+    except Exception as e:
+        print(e)
+
+
+async def fetch_and_cache_async(item_id: str):
+    try:
+        response = await asyncio.to_thread(get_shop_item, item_id)
+
+        listing = response.get("listing", {})
+        metadata = listing.get("metadata", {})
+        assets = metadata.get("assets", [])
+
+        if not assets:
+            return None
+
+        tasks = []
+        for asset in assets:
+            url = _format_link(asset.get("uri", ""))
+            tasks.append(_cache_async(url))
+
+        if tasks:
+            await asyncio.gather(*tasks)
+
+    except Exception as e:
+        print(e)

@@ -2,12 +2,11 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from balancer.balancer import Balancer
+from balancer.balancer import request_composite_async
 from configs.bot_config import TEST_CHANNEL_ID
 from data.models.download_type import DownloadType
 from data.postgres.daos.tracking_dao import TrackingDao
 from data.postgres.daos.user_dao import UserDao
-from data.remote.mashi_api import MashiApi
 
 
 class MashupModule(commands.Cog):
@@ -15,8 +14,6 @@ class MashupModule(commands.Cog):
         self.bot = bot
         self._user_dao = UserDao()
         self._tracking_dao = TrackingDao()
-        self._mashi_api = MashiApi()
-        self._balancer = Balancer.instance()
 
     @app_commands.command(name="mashi", description="Generates mashup")
     @app_commands.describe(image="Image type")
@@ -39,7 +36,7 @@ class MashupModule(commands.Cog):
                 else:
                     ext = ".gif"
 
-                data = await self._balancer.get_composite(wallet=wallet, download_type=download_type)
+                data = await request_composite_async(wallet=wallet, download_type=download_type)
                 if data:
                     if type(data) is not bytes:
                         msg = data.error_msg
@@ -90,7 +87,7 @@ class MashupModule(commands.Cog):
 
     @app_commands.command(name="delete_mashup", description="Deletes mashup")
     @app_commands.describe(msg_id="Message id on right click")
-    async def delete_mashup(self, interaction: discord.Interaction, msg_id: str):
+    async def delete_mashup_async(self, interaction: discord.Interaction, msg_id: str):
         try:
             await interaction.response.defer(ephemeral=True)
 
@@ -123,6 +120,7 @@ class MashupModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
+
 
 async def setup(bot):
     await bot.add_cog(MashupModule(bot))

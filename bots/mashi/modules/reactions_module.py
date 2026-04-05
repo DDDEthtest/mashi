@@ -11,7 +11,7 @@ class ReactionsModule(commands.Cog):
         self._reactions_dao = ReactionsDao()
 
     @app_commands.command(name="leaderboard", description="Top users by 🔥 received")
-    async def leaderboard(self, interaction: discord.Interaction):
+    async def get_leaderboard_async(self, interaction: discord.Interaction):
         try:
             view = LeaderboardView(bot=self.bot)
             embed = await view.create_embed()
@@ -20,7 +20,7 @@ class ReactionsModule(commands.Cog):
             print(e)
 
     @app_commands.command(name="reactions_received", description="🔥 received")
-    async def reactions_received(self, interaction: discord.Interaction):
+    async def reactions_received_async(self, interaction: discord.Interaction):
         reactions_count = self._reactions_dao.get_reaction_count(interaction.user.id)
         await interaction.response.send_message(
             f"You got 🔥 x {reactions_count}, and are a lovely member of our community!")

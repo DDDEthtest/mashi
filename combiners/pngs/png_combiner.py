@@ -2,68 +2,67 @@
 import io
 from configs.img_config import DEFAULT_PNG_WIDTH, DEFAULT_PNG_HEIGHT, DEFAULT_TRAIT_HEIGHT, DEFAULT_TRAIT_WIDTH
 from data.models.detailed_trait import DetailedTrait
-from combiner.utils.modules.gif_module import extract_first_gif_frame, is_gif
-from combiner.utils.modules.svg_module import convert_svg_to_png, is_svg
-from combiner.utils.modules.webp_module import extract_first_webp_frame, is_webp
+from data.models.image_type import ImageType
+from utils.helpers.image_helper import extract_first_frame, get_image_type
+from utils.helpers.svg_helper import convert_svg_to_png
 
 resample_mode = Image.Resampling.LANCZOS
 
-class PngCombiner:
-    def _convert_to_detailed_traits(self, traits: list[bytes]) -> list[DetailedTrait]:
-        detailed_traits = []
-        for i, trait in enumerate(traits):
-            temp_png_bytes = trait
-            is_full_size = False
 
-            if is_gif(trait):
-                temp_png_bytes = extract_first_gif_frame(trait)
-            if is_webp(trait):
-                temp_png_bytes = extract_first_webp_frame(trait)
-            if is_svg(trait):
-                temp_png_bytes = convert_svg_to_png(trait)
+def _convert_to_detailed_traits(traits: list[bytes]) -> list[DetailedTrait]:
+    detailed_traits = []
+    for i, trait in enumerate(traits):
+        temp_bytes = trait
+        is_full_size = False
 
-            if i == 0 or i == len(traits) - 1:
-                image = Image.open(io.BytesIO(temp_png_bytes))
-                width, height = image.size
-                is_full_size = DEFAULT_PNG_WIDTH / DEFAULT_PNG_HEIGHT == round(width / height, 2)
+        image_type = get_image_type(trait)
 
-            detailed_traits.append(DetailedTrait(src=temp_png_bytes, is_full_size=is_full_size))
+        if image_type is ImageType.GIF or image_type is ImageType.WEBP:
+            temp_bytes = extract_first_frame(trait)
 
-        return detailed_traits
+        if image_type is ImageType.SVG:
+            temp_bytes = convert_svg_to_png(trait)
 
-    def get_combined_img_bytes(
-            self,
-            sorted_traits: list
-    ):
-        bg_size = (DEFAULT_PNG_WIDTH, DEFAULT_PNG_HEIGHT)
-        trait_size = (DEFAULT_TRAIT_WIDTH, DEFAULT_TRAIT_HEIGHT)
+        if i == 0 or i == len(traits) - 1:
+            image = Image.open(io.BytesIO(temp_bytes))
+            width, height = image.size
+            is_full_size = DEFAULT_PNG_WIDTH / DEFAULT_PNG_HEIGHT == round(width / height, 2)
 
-        try:
-            if not sorted_traits:
-                raise ValueError("No traits found")
+        detailed_traits.append(DetailedTrait(src=temp_bytes, is_full_size=is_full_size))
 
-            detailed_traits = self._convert_to_detailed_traits(sorted_traits)
+    return detailed_traits
 
-            base = Image.new("RGBA", bg_size, (0, 0, 0, 0))
-            for detailed_trait in detailed_traits:
-                if detailed_trait.is_full_size:
-                    pos = (0, 0)
-                    size = bg_size
-                else:
-                    pos = (
-                        int((DEFAULT_PNG_WIDTH - DEFAULT_TRAIT_WIDTH) / 2),
-                        int((DEFAULT_PNG_HEIGHT - DEFAULT_TRAIT_HEIGHT) / 2)
-                    )
-                    size = trait_size
 
-                img = Image.open(io.BytesIO(detailed_trait.src)).convert("RGBA")
-                img = img.resize(size, resample=resample_mode)
+def get_combined_png(sorted_traits: list):
+    bg_size = (DEFAULT_PNG_WIDTH, DEFAULT_PNG_HEIGHT)
+    trait_size = (DEFAULT_TRAIT_WIDTH, DEFAULT_TRAIT_HEIGHT)
 
-                base.alpha_composite(img, pos)
+    try:
+        if not sorted_traits:
+            raise ValueError("No traits found")
 
-            # get png bytes
-            composite_bytes = io.BytesIO()
-            base.save(composite_bytes, format="PNG")
-            return composite_bytes.getvalue()
-        except Exception as e:
-            print(e)
+        detailed_traits = self._convert_to_detailed_traits(sorted_traits)
+
+        base = Image.new("RGBA", bg_size, (0, 0, 0, 0))
+        for detailed_trait in detailed_traits:
+            if detailed_trait.is_full_size:
+                pos = (0, 0)
+                size = bg_size
+            else:
+                pos = (
+                    int((DEFAULT_PNG_WIDTH - DEFAULT_TRAIT_WIDTH) / 2),
+                    int((DEFAULT_PNG_HEIGHT - DEFAULT_TRAIT_HEIGHT) / 2)
+                )
+                size = trait_size
+
+            img = Image.open(io.BytesIO(detailed_trait.src)).convert("RGBA")
+            img = img.resize(size, resample=resample_mode)
+
+            base.alpha_composite(img, pos)
+
+        # get png bytes
+        composite_bytes = io.BytesIO()
+        base.save(composite_bytes, format="PNG")
+        return composite_bytes.getvalue()
+    except Exception as e:
+        print(e)

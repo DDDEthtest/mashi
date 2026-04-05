@@ -1,14 +1,12 @@
 import asyncio
-from data.remote.mashit_api import MashitApi
 from data.postgres.postgres_manager import db_manager, Base
-from services.caching import CachingService
+from data.remote.mashit_api import get_shop_list
+from services.caching import fetch_and_cache_async
 
 Base.metadata.create_all(db_manager.engine)
 
-async def prefetch():
-    api = MashitApi()
-    caching_service = CachingService.instance()
 
+async def prefetch_async():
     limit = 20
     offset = 0
     has_more = True
@@ -18,7 +16,7 @@ async def prefetch():
             print(f"Fetching page at offset {offset}...")
 
             # 1. Fetch the shop list (Sync API call -> Thread)
-            shop_data = await asyncio.to_thread(api.get_shop_list, limit=limit, offset=offset)
+            shop_data = await asyncio.to_thread(get_shop_list, limit=limit, offset=offset)
 
             listings = shop_data.get("listings", [])
             pagination = shop_data.get("pagination", {})
@@ -32,7 +30,7 @@ async def prefetch():
                 item_id = item.get("id")
                 if item_id:
                     # NOTICE: We call it directly because it is already async!
-                    tasks.append(caching_service.fetch_and_cache_item(item_id))
+                    tasks.append(fetch_and_cache_async(item_id))
 
             # 3. Run all caching tasks for this page in parallel
             if tasks:
@@ -45,5 +43,3 @@ async def prefetch():
 
     except Exception as e:
         print(f"❌ An error occurred during execution: {e}")
-
-

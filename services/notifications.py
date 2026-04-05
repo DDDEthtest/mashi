@@ -2,9 +2,10 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 from configs.remote_config import FIREBASE_CRED_PATH
 
-#Init
+# Init
 cred = credentials.Certificate(FIREBASE_CRED_PATH)
 firebase_admin.initialize_app(cred)
+
 
 def notify_android_users(title: str, body: str, listing_id=None):
     try:
