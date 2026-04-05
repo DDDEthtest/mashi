@@ -25,12 +25,12 @@ class Balancer:
         async with self._composite_semaphore:
             try:
                 # Fetch mashup data (assets, colors) from the API
-                mashup = self.mashi_api.get_mashi_data(wallet)
+                mashup = self.mashi_api.get_mashup(wallet)
 
                 # Forward request to MashiRepo
                 return await self.mashi_repo.get_composite(
                     mashup=mashup,
-                    img_type=img_type,
+                    download_type=download_type
                 )
 
             except Exception as e:

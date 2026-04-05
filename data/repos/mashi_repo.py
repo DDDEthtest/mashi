@@ -6,11 +6,14 @@ from combiner.utils.modules.gif_module import is_gif
 from combiner.utils.modules.webp_module import is_webp
 from configs.img_config import LAYER_ORDER
 from data.models.download_type import DownloadType
+from data.models.image_type import ImageType
 from data.models.mashup_error import MashupError
 from data.postgres.daos.image_dao import ImageDao
 from data.remote.images_api import ImagesApi
 from primary.combiner.gifs.services.gif_bridge_service import GifBridgeService
 from combiner.utils.modules.svg_module import replace_svg_colors, is_svg
+
+from utils.helpers.image_helper import get_image_type
 
 
 class MashiRepo:
@@ -33,30 +36,24 @@ class MashiRepo:
             name = asset.get("name").lower()
             image_url = asset.get("image")
 
-            src = self._image_dao.get_image(image_url)
+            data = self._image_dao.get_image(image_url)
+            if data is None:
+                data = self._images_api.get_image_src(image_url)
 
-            if src is None:
-                src = self._images_api.get_image_src(image_url)
+                image_type = get_image_type(data)
+                if image_type is not ImageType.UNKNOWN:
+                    self._image_dao.add_image(image_url, data)
 
-                is_image = is_png(src) or \
-                           is_apng(src) or \
-                           is_svg(src) or \
-                           is_gif(src) or \
-                           is_webp(src)
-
-                if is_image:
-                    self._image_dao.add_image(image_url, src)
-
-
-            if is_svg(src):
-                src = replace_svg_colors(
-                    src,
+            image_type = get_image_type(data)
+            if image_type is ImageType.SVG:
+                data = replace_svg_colors(
+                    data,
                     body_color=colors.get("base"),
                     eyes_color=colors.get("eyes"),
                     hair_color=colors.get("hair"),
                 )
 
-            return name, src
+            return name, data
 
         except Exception as e:
             print(e)

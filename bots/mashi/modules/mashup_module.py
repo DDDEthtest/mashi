@@ -1,18 +1,22 @@
-﻿import discord
+﻿from io import BytesIO
+import discord
 from discord import app_commands
 from discord.ext import commands
-
+from balancer.balancer import Balancer
+from configs.bot_config import TEST_CHANNEL_ID
+from data.models.download_type import DownloadType
 from data.postgres.daos.tracking_dao import TrackingDao
 from data.postgres.daos.user_dao import UserDao
 from data.remote.mashi_api import MashiApi
 
 
-class WalletModule(commands.Cog):
+class MashupModule(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._user_dao = UserDao()
         self._tracking_dao = TrackingDao()
         self._mashi_api = MashiApi()
+        self._balancer = Balancer.instance()
 
     @app_commands.command(name="mashi", description="Generates mashup")
     @app_commands.describe(image="Image type")
@@ -26,17 +30,16 @@ class WalletModule(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=False)
 
-            id = interaction.user.id
-
-            wallet = self._user_dao.get_wallet(id)
+            user_id = interaction.user.id
+            wallet = self._user_dao.get_wallet(user_id)
             if wallet:
-
-                if img_type == 0:
+                download_type = DownloadType[image]
+                if download_type is DownloadType.PNG:
                     ext = ".png"
                 else:
                     ext = ".gif"
 
-                data = await Balancer.instance().get_composite(wallet, img_type=img_type)
+                data = await self._balancer.get_composite(wallet=wallet, download_type=download_type)
                 if data:
                     if type(data) is not bytes:
                         msg = data.error_msg
@@ -52,13 +55,10 @@ class WalletModule(commands.Cog):
                         )
                         return
 
-                    # view = Button(author=interaction.user)
-
                     buffer = BytesIO(data)
                     file = discord.File(fp=buffer, filename=f"composite{ext}")
 
                     color = discord.Color.random()
-
                     embed = discord.Embed(title=f"{interaction.user.display_name}'s mashup", color=color)
                     embed.set_image(url=f"attachment://composite{ext}")
                     embed.set_footer(text="© 2026 mash-it")
@@ -67,7 +67,7 @@ class WalletModule(commands.Cog):
                     return
 
             await interaction.followup.send(
-                f"/connect_wallet command",
+                f"use /connect_wallet command",
                 ephemeral=True
             )
 
@@ -123,3 +123,6 @@ class WalletModule(commands.Cog):
                 "Something went wrong",
                 ephemeral=True
             )
+
+async def setup(bot):
+    await bot.add_cog(MashupModule(bot))

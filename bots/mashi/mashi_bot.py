@@ -130,6 +130,7 @@ Max per-wallet: {listing["maxPerWallet"]}"""
             pass
 
     async def setup_hook(self):
-        await self.load_extension("bots.mashi.modules.mashi_module")
+        await self.load_extension("bots.mashi.modules.mashup_module")
         await self.load_extension("bots.mashi.modules.wallet_module")
+        await self.load_extension("bots.mashi.modules.reactions_module")
         await self.tree.sync()
