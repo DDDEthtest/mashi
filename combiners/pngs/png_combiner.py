@@ -41,7 +41,7 @@ def get_combined_png(sorted_traits: list):
         if not sorted_traits:
             raise ValueError("No traits found")
 
-        detailed_traits = self._convert_to_detailed_traits(sorted_traits)
+        detailed_traits = _convert_to_detailed_traits(sorted_traits)
 
         base = Image.new("RGBA", bg_size, (0, 0, 0, 0))
         for detailed_trait in detailed_traits:

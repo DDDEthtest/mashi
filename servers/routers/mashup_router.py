@@ -17,7 +17,7 @@ async def get_mashup(response: Response, wallet: str, download_type: str = "png"
         else:
             raise HTTPException(status_code=500, detail="Wrong download type: should be either png or gif")
 
-        download_type = DownloadType(download_type.upper())
+        download_type = DownloadType[download_type.upper()]
 
         data = await request_composite_async(wallet, download_type=download_type)
 

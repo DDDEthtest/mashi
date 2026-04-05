@@ -41,7 +41,7 @@ async function renderFrameRange(
 
     // Image padding logic
     await page.evaluate(
-        () => {
+        ({GIF_WIDTH, GIF_HEIGHT, TRAIT_WIDTH, TRAIT_HEIGHT}) => {
             const imgs = Array.from(document.images);
             return Promise.all(
                 imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => img.onload = res))
@@ -55,7 +55,8 @@ async function renderFrameRange(
                     }
                 });
             });
-        }
+        },
+        {GIF_WIDTH, GIF_HEIGHT, TRAIT_WIDTH, TRAIT_HEIGHT}
     );
 
     const client = await page.context().newCDPSession(page);

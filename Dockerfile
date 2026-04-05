@@ -39,4 +39,4 @@ COPY . .
 
 # 8. Execution
 # Orchestrating both services
-CMD ["bash", "-c", "python3 main.py & node ./combiners/gifs/Main.js"]
+CMD ["bash", "-c", "python3 main.py & node ./combiners/gifs/main.js"]
