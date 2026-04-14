@@ -1,6 +1,7 @@
 ﻿import asyncio
 import uvicorn
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from starlette.middleware.cors import CORSMiddleware
 from bots.mashi.mashi_bot import MashiBot
 from configs.bot_config import MASHI_BOT_TOKEN
@@ -13,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://mash-it.io", "https://www.mash-it.io", "http://localhost:3000"],
+    allow_origins=["https://mash-it.io", "https://www.mash-it.io", "http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -25,6 +26,20 @@ async def startup():
     bot = MashiBot()
     asyncio.create_task(bot.start(MASHI_BOT_TOKEN))
 
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    return """
+    <html>
+        <head>
+            <title>Home Page</title>
+        </head>
+        <body>
+            <h1>Welcome to my API</h1>
+            <p>Click the link below to visit Google:</p>
+            <a href="https://katzemon.com/api/generate/composite/0xd659688366e5a5a6190409dcd4834b3a5b7c88ba" download="composite">Download</a>
+        </body>
+    </html>
+    """
 
 app.include_router(mashup_router)
 app.include_router(correction_router)
