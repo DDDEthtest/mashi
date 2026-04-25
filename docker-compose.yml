@@ -6,6 +6,7 @@ services:
     container_name: app
     expose:
       - "3000"
+      - "666"
       - "777"
     restart: unless-stopped
 

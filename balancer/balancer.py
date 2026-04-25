@@ -1,32 +1,22 @@
 import asyncio
 from configs.img_config import MAX_GENERATIONS
-from data.remote.images_api import ImagesApi
-from data.remote.mashi_api import MashiApi
-from data.repos.mashi_repo import MashiRepo
+from data.models.download_type import DownloadType
+from data.remote.mashit_api import get_mashup
+from data.repos.mashi_repo import get_composite_async
+
+_composite_semaphore = asyncio.Semaphore(MAX_GENERATIONS)
 
 
-class Balancer:
-    _instance = None
+async def request_composite_async(wallet: str, download_type: DownloadType = DownloadType.PNG):
+    async with _composite_semaphore:
+        try:
+            mashup = get_mashup(wallet)
 
-    def __init__(self):
-        self.mashi_api = MashiApi()
-        self.mashi_repo = MashiRepo(images_api=ImagesApi())
-        self._composite_semaphore = asyncio.Semaphore(MAX_GENERATIONS)
+            return await get_composite_async(
+                mashup=mashup,
+                download_type=download_type
+            )
 
-    @classmethod
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = Balancer()
-        return cls._instance
-
-    async def get_composite(self, wallet: str, img_type: int = 0, is_higher_res: int = False, is_longer: bool = False,
-                         is_smoother: bool = False, playback_speed: int = 0):
-        # Acquire semaphore to limit concurrency
-        async with self._composite_semaphore:
-            try:
-                mashup = self.mashi_api.get_mashi_data(wallet)
-                return await self.mashi_repo.get_composite(mashup=mashup, img_type=img_type, is_higher_res=is_higher_res, is_longer=is_longer, is_smoother=is_smoother, playback_speed=playback_speed)
-
-            except Exception as e:
-                print(f"Error in get_composite: {e}")
-                return None
+        except Exception as e:
+            print(f"❌ Balancer Error: {e}")
+            return None

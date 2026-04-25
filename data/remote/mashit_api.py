@@ -1,20 +1,38 @@
-import requests
 from typing import Dict, Any
-from configs.config import MASHIT_BASE_URL, MASHIT_KEY
 
-class MashitApi:
-    def __init__(self, base_url: str = MASHIT_BASE_URL):
-        self.base_url = base_url
-        self.session = requests.Session()
+from configs.remote_config import MASHIT_KEY, MASHIT_BASE_URL
+from data.remote.client import api_client
 
-    def get_shop_list(self, limit: int, offset: int = 0, api_key: str = MASHIT_KEY) -> Dict[str, Any]:
-        params = {"apiKey": api_key, "limit": limit, "offset": offset}
-        response = self.session.get(f"{self.base_url}/api/v1/mashers/shop", params=params)
-        response.raise_for_status()
-        return response.json()
 
-    def get_shop_item(self, item_id: str, api_key: str = MASHIT_KEY) -> Dict[str, Any]:
-        params = {"apiKey": api_key}
-        response = self.session.get(f"{self.base_url}/api/v1/listings/{item_id}", params=params)
-        response.raise_for_status()
-        return response.json()
+def get_shop_list(limit: int, offset: int = 0, api_key: str = MASHIT_KEY) -> Dict[str, Any]:
+    params = {"apiKey": api_key, "limit": limit, "offset": offset}
+    response = api_client.get(f"{MASHIT_BASE_URL}/api/v1/mashers/shop", params=params)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_shop_item(item_id: str, api_key: str = MASHIT_KEY) -> Dict[str, Any]:
+    params = {"apiKey": api_key}
+    response = api_client.get(f"{MASHIT_BASE_URL}/api/v1/listings/{item_id}", params=params)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_mashup(wallet: str) -> dict[Any, Any]:
+    try:
+        res = api_client.get(f"{MASHIT_BASE_URL}api/mashers/latest?wallet={wallet}")
+        data = res.json()
+        if data.get("message") == "No mashups found":
+            return {}
+
+        colors = data.get("colors", {})
+        traits = data.get("assets", [])
+
+        return {
+            "colors": colors,
+            "assets": traits
+        }
+
+    except Exception as e:
+        print(e)
+        return {}

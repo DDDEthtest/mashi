@@ -1,109 +1,78 @@
 import asyncio
-
-from combiner.pngs.combiners.png_combiner import PngCombiner
-from combiner.utils.modules.apng_module import is_png, is_apng
-from combiner.utils.modules.gif_module import is_gif
-from combiner.utils.modules.webp_module import is_webp
+from combiners.pngs.png_combiner import get_combined_png
 from configs.img_config import LAYER_ORDER
+from data.models.download_type import DownloadType
+from data.models.image_type import ImageType
 from data.models.mashup_error import MashupError
 from data.postgres.daos.image_dao import ImageDao
-from data.remote.images_api import ImagesApi
-from combiner.gifs.services.gif_bridge_service import GifBridgeService
-from combiner.utils.modules.svg_module import replace_colors, is_svg
+from data.remote.ipfs_api import get_image_src
+from services.bridge import generate_gif_async
+from utils.helpers.image_helper import get_image_type
+from utils.helpers.svg_helper import replace_svg_colors
 
 
-class MashiRepo:
-    _instance = None
+def _get_asset(asset, colors):
+    try:
+        image_dao = ImageDao()
 
-    @classmethod
-    def instance(cls):
-        if cls._instance is None:
-            _images_api = ImagesApi()
-            cls._instance = MashiRepo(_images_api)
-        return cls._instance
+        name = asset.get("name").lower()
+        image_url = asset.get("image")
 
-    def __init__(self, images_api: ImagesApi):
-        self._png_combiner = PngCombiner()
-        self._image_dao = ImageDao()
-        self._images_api = images_api
+        data = image_dao.get_image(image_url)
+        if data is None:
+            data = get_image_src(image_url)
 
-    def _get_asset(self, asset, colors):
-        try:
-            name = asset.get("name").lower()
-            image_url = asset.get("image")
+            image_type = get_image_type(data)
+            if image_type is not ImageType.UNKNOWN:
+                image_dao.add_image(image_url, data)
 
-            src = self._image_dao.get_image(image_url)
+        image_type = get_image_type(data)
+        if image_type is ImageType.SVG:
+            data = replace_svg_colors(
+                data,
+                body_color=colors.get("base"),
+                eyes_color=colors.get("eyes"),
+                hair_color=colors.get("hair"),
+            )
 
-            if src is None:
-                src = self._images_api.get_image_src(image_url)
+        return name, data
 
-                is_image = is_png(src) or \
-                           is_apng(src) or \
-                           is_svg(src) or \
-                           is_gif(src) or \
-                           is_webp(src)
-
-                if is_image:
-                    self._image_dao.add_image(image_url, src)
+    except Exception as e:
+        print(e)
+        return None
 
 
-            if is_svg(src):
-                src = replace_colors(
-                    src,
-                    body_color=colors.get("base"),
-                    eyes_color=colors.get("eyes"),
-                    hair_color=colors.get("hair"),
-                )
+async def get_composite_async(mashup: dict, download_type: DownloadType = DownloadType.PNG) -> bytes | MashupError:
+    try:
+        assets = mashup.get("assets", [])
+        colors = mashup.get("colors", {})
 
-            return name, src
+        if not assets:
+            return MashupError(error_msg="No saved mashup")
 
-        except Exception as e:
-            print(e)
-            return None
+        # Get assets in parallel
+        tasks = [asyncio.to_thread(_get_asset, asset, colors) for asset in assets]
+        results = await asyncio.gather(*tasks)
 
-    async def get_composite(self, mashup: dict, img_type=0, is_higher_res: int = False, is_longer: bool = False,
-                         is_smoother: bool = False, playback_speed: int = 0) -> bytes | MashupError:
-        try:
-            assets = mashup.get("assets", [])
-            colors = mashup.get("colors", {})
+        srcs = {}
+        for result in results:
+            if result:
+                name, src = result
+                srcs[name] = src
 
-            if not assets:
-                return MashupError(error_msg="No saved mashup")
+        # Filter and order traits based on LAYER_ORDER
+        traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
 
-            # get assets in parallel
-            tasks = [asyncio.to_thread(self._get_asset, asset, colors) for asset in assets]
-            results = await asyncio.gather(*tasks)
+        if download_type is DownloadType.PNG:
+            data: bytes = get_combined_png(traits)
+        else:
+            data: bytes = await generate_gif_async(traits)
 
-            srcs = {}
-            for result in results:
-                if result:
-                    name, src = result
-                    srcs[name] = src
+        if data:
+            return data
 
-            ordered_traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
+        raise Exception("Failed to generate composite image")
 
-            if img_type == 0:
-                img_bytes = self._png_combiner.get_combined_img_bytes(
-                    ordered_traits,
-                )
-            else:
-                if playback_speed == 0:
-                    is_faster = False
-                    is_slower = False
-                elif playback_speed == 1:
-                    is_faster = True
-                    is_slower = False
-                else:
-                    is_faster = False
-                    is_slower = True
-
-                img_bytes = await GifBridgeService.get_instance().create_gif(ordered_traits, is_higher_res=is_higher_res, is_smoother=is_smoother, is_longer=is_longer, is_faster=is_faster, is_slower=is_slower)
-
-            if img_bytes:
-                return img_bytes
-            else:
-                raise Exception("Failed to generate composite image")
-
-        except Exception as e:
-            print(e)
-            return MashupError(error_msg="Internal error. We're working on fix", data=mashup)
+    except Exception as e:
+        print(e)
+        return MashupError(error_msg="Internal error. We're working on fix", data=mashup)

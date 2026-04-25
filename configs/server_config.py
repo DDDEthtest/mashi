@@ -1,0 +1,6 @@
+﻿# Main Server
+HTTP_PORT = 3000
+
+# Gif Server
+GIF_MAKER_SERVER_PORT = 666
+GIF_MAKER_SERVER_URI = f"http://localhost:{GIF_MAKER_SERVER_PORT}"
