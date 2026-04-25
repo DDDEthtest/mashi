@@ -1,6 +1,6 @@
-const {chromium} = require('playwright');
+const { chromium } = require('playwright');
 const path = require('path');
-const {execSync} = require('child_process');
+const { execSync } = require('child_process');
 const {
     GIF_WIDTH,
     GIF_HEIGHT,
@@ -11,7 +11,7 @@ const {
     PLAYBACK_FPS,
     LENGTH_LIMIT_SEC
 } = require("../configs/GifConfig");
-const {readFilesAsStrings} = require('../utils/Files');
+const { readFilesAsStrings } = require('../utils/Files');
 
 let browserInstance = null;
 
@@ -41,7 +41,7 @@ async function renderFrameRange(
 
     // Image padding logic
     await page.evaluate(
-        ({GIF_WIDTH, GIF_HEIGHT, TRAIT_WIDTH, TRAIT_HEIGHT}) => {
+        ({ GIF_WIDTH, GIF_HEIGHT, TRAIT_WIDTH, TRAIT_HEIGHT }) => {
             const imgs = Array.from(document.images);
             return Promise.all(
                 imgs.map(img => img.complete ? Promise.resolve() : new Promise(res => img.onload = res))
@@ -56,7 +56,7 @@ async function renderFrameRange(
                 });
             });
         },
-        {GIF_WIDTH, GIF_HEIGHT, TRAIT_WIDTH, TRAIT_HEIGHT}
+        { GIF_WIDTH, GIF_HEIGHT, TRAIT_WIDTH, TRAIT_HEIGHT }
     );
 
     const client = await page.context().newCDPSession(page);
@@ -69,7 +69,7 @@ async function renderFrameRange(
 
     for (let i = startFrame; i <= endFrame; i++) {
         const framePath = path.join(resourcesDir, `frame_${String(i).padStart(3, '0')}.png`);
-        await page.screenshot({path: framePath, omitBackground: true});
+        await page.screenshot({ path: framePath, omitBackground: true });
 
         await client.send('Emulation.setVirtualTimePolicy', {
             policy: 'advance',
@@ -88,7 +88,7 @@ async function generateGif(tempDir, t) {
     let maxT = t;
 
     const context = await browser.newContext({
-        viewport: {width: GIF_WIDTH, height: GIF_HEIGHT}
+        viewport: { width: GIF_WIDTH, height: GIF_HEIGHT }
     });
 
     try {
@@ -124,16 +124,16 @@ async function generateGif(tempDir, t) {
             )
         ]);
 
-        const palettePath = path.join(resourcesDir, 'palette.png');
         const gifPath = path.join(resourcesDir, 'result.gif');
 
         // FFmpeg: -threads 0 allows use of all available CPU cores
         execSync(
-            `ffmpeg -y -threads 0 -i "${path.join(resourcesDir, 'frame_000.png')}" -vf "palettegen=max_colors=256" "${palettePath}"`
-        );
-
-        execSync(
-            `ffmpeg -y -threads 0 -framerate ${PLAYBACK_FPS} -i "${resourcesDir}/frame_%03d.png" -i "${palettePath}" -filter_complex "[0:v]paletteuse=dither=none" "${gifPath}"`
+            `ffmpeg -y -threads 1 -framerate ${PLAYBACK_FPS} -i "${resourcesDir}/frame_%03d.png" ` +
+            `-vf "scale=552:736:flags=lanczos,format=rgb24,split[s0][s1];` +
+            `[s0]palettegen[p];` +
+            `[s1][p]paletteuse=dither=bayer:bayer_scale=3" ` +
+            `-r ${PLAYBACK_FPS} ` +
+            `"${gifPath}"`
         );
 
         return gifPath;
