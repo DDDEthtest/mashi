@@ -19,6 +19,7 @@ async def release_notify(request: Request, response: Response):
         return {"message": "Data received"}
 
     except Exception as e:
+        print(e)
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"message": e}
 
@@ -36,5 +37,6 @@ async def approval_notify(request: Request, response: Response):
         return {"message": "Data received"}
 
     except Exception as e:
+        print(e)
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"message": e}
