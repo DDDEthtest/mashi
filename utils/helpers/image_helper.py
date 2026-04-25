@@ -17,12 +17,10 @@ def get_image_type(data: bytes) -> ImageType:
         if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
             return ImageType.WEBP
 
-        buffer = io.BytesIO(data)
-        im = APNG.open(buffer)
-
-        if len(im.frames) > 1:
-            return ImageType.APNG
-
+        if data.startswith(b"\x89PNG\r\n\x1a\n"):
+            if b"acTL" in data:
+                return ImageType.APNG
+        
         return ImageType.PNG
 
     except Exception as e:

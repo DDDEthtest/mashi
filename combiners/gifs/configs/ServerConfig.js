@@ -1,5 +1,5 @@
 //Ports
-const PORT = 777;
+const PORT = 666;
 
 module.exports = {
     PORT

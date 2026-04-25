@@ -124,15 +124,13 @@ async function generateGif(tempDir, t) {
             )
         ]);
 
+        const palettePath = path.join(resourcesDir, 'palette.png');
         const gifPath = path.join(resourcesDir, 'result.gif');
 
         // FFmpeg: -threads 0 allows use of all available CPU cores
         execSync(
             `ffmpeg -y -threads 1 -framerate ${PLAYBACK_FPS} -i "${resourcesDir}/frame_%03d.png" ` +
-            `-vf "scale=552:736:flags=lanczos,format=rgb24,split[s0][s1];` +
-            `[s0]palettegen[p];` +
-            `[s1][p]paletteuse=dither=bayer:bayer_scale=3" ` +
-            `-r ${PLAYBACK_FPS} ` +
+            `-filter_complex "[0:v]split[a][b];[a]palettegen=max_colors=256[p];[b][p]paletteuse=dither=none" ` +
             `"${gifPath}"`
         );
 
