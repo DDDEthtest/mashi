@@ -19,6 +19,7 @@ async def generate_gif_async(traits: list):
     total_ts = await get_durations_async(traits)
     max_t = max(total_ts) if total_ts else 0
 
+
     for index, data in enumerate(traits):
         mime = get_mime(data)
         b64 = base64.b64encode(data).decode("utf-8")
