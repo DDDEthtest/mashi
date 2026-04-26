@@ -142,7 +142,7 @@ async function generateGif(tempDir, t) {
 
         // FFmpeg: -threads 0 allows use of all available CPU cores
         execSync(
-            `ffmpeg -y -threads 1 ` +
+            `ffmpeg -y -threads 1 -framerate ${PLAYBACK_FPS} ` +
             `-i "${resourcesDir}/frame_%03d.png" ` +
             `-i "${palettePath}" ` +
             `-lavfi "[0:v]format=rgba,setpts=PTS-STARTPTS[v];[v][1:v]paletteuse=dither=none" ` +
