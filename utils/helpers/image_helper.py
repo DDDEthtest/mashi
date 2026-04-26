@@ -1,5 +1,4 @@
 import io
-
 import webp
 from PIL import Image
 from apng import APNG
@@ -17,12 +16,9 @@ def get_image_type(data: bytes) -> ImageType:
         if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
             return ImageType.WEBP
 
-        buffer = io.BytesIO(data)
-        im = APNG.open(buffer)
-
-        if len(im.frames) > 1:
+        if b"acTL" in data:
             return ImageType.APNG
-
+        
         return ImageType.PNG
 
     except Exception as e:

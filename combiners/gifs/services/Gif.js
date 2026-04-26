@@ -69,7 +69,11 @@ async function renderFrameRange(
 
     for (let i = startFrame; i <= endFrame; i++) {
         const framePath = path.join(resourcesDir, `frame_${String(i).padStart(3, '0')}.png`);
-        await page.screenshot({path: framePath, omitBackground: true});
+        await page.screenshot({
+            path: framePath,
+            type: "png",
+            omitBackground: false
+        });
 
         await client.send('Emulation.setVirtualTimePolicy', {
             policy: 'advance',
@@ -86,6 +90,7 @@ async function generateGif(tempDir, t) {
     const browser = await getBrowser();
 
     let maxT = t;
+    console.log(maxT)
 
     const context = await browser.newContext({
         viewport: {width: GIF_WIDTH, height: GIF_HEIGHT}
@@ -127,13 +132,22 @@ async function generateGif(tempDir, t) {
         const palettePath = path.join(resourcesDir, 'palette.png');
         const gifPath = path.join(resourcesDir, 'result.gif');
 
-        // FFmpeg: -threads 0 allows use of all available CPU cores
         execSync(
-            `ffmpeg -y -threads 0 -i "${path.join(resourcesDir, 'frame_000.png')}" -vf "palettegen=max_colors=256" "${palettePath}"`
+            `ffmpeg -y -threads 1 ` +
+            `-i "${resourcesDir}/frame_%03d.png" ` +
+            `-vf "format=rgba,palettegen=max_colors=256" ` +
+            `"${palettePath}"`,
+            {stdio: "inherit"}
         );
 
+        // FFmpeg: -threads 0 allows use of all available CPU cores
         execSync(
-            `ffmpeg -y -threads 0 -framerate ${PLAYBACK_FPS} -i "${resourcesDir}/frame_%03d.png" -i "${palettePath}" -filter_complex "[0:v]paletteuse=dither=none" "${gifPath}"`
+            `ffmpeg -y -threads 1 -framerate ${PLAYBACK_FPS} ` +
+            `-i "${resourcesDir}/frame_%03d.png" ` +
+            `-i "${palettePath}" ` +
+            `-lavfi "[0:v]format=rgba,setpts=PTS-STARTPTS[v];[v][1:v]paletteuse=dither=none" ` +
+            `"${gifPath}"`,
+            {stdio: "inherit"}
         );
 
         return gifPath;
