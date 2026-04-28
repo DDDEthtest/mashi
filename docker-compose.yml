@@ -10,6 +10,19 @@ services:
       - "777"
     restart: unless-stopped
 
+  forum:
+    build:
+      context: ./forum
+      dockerfile: Dockerfile
+    container_name: forum
+    expose:
+      - "3001"
+    environment:
+      # Rails needs this to be a long, random string in production
+      - SECRET_KEY_BASE=dummy_key_for_testing_at_least_30_chars_long
+    restart: unless-stopped
+
+
   nginx:
     image: nginx:alpine
     container_name: nginx
@@ -19,7 +32,7 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot:ro
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:rw
     depends_on:
       - app
     restart: unless-stopped
