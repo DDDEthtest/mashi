@@ -1,0 +1,21 @@
+﻿services:
+  mashi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mashi
+    # Expose makes these ports reachable by Nginx on the 'ionos' network
+    # but does not open them to the public internet directly.
+    expose:
+      - "3000"
+      - "666"
+    environment:
+      - NODE_ENV=production
+      # Add other env variables here (DB_URL, API_KEYS, etc.)
+    networks:
+      - ionos
+    restart: unless-stopped
+
+networks:
+  ionos:
+    external: true
