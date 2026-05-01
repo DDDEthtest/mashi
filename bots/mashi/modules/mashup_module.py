@@ -64,7 +64,7 @@ class MashupModule(commands.Cog):
                     return
 
             await interaction.followup.send(
-                f"use /connect_wallet command even if you did before. We had db issues, hope you understand",
+                f"use /connect_wallet command (again)",
                 ephemeral=True
             )
 
