@@ -24,49 +24,49 @@ class MashupModule(commands.Cog):
     async def mashi(self, interaction: discord.Interaction, image: str = "PNG"):
         msg = None
 
+        user_id = interaction.user.id
+        wallet = self._user_dao.get_wallet(user_id)
+
+        if not wallet:
+            return await interaction.response.send_message(
+                "Please use /connect_wallet command",
+                ephemeral=True
+            )
+
         try:
             await interaction.response.defer(ephemeral=False)
 
-            user_id = interaction.user.id
-            wallet = self._user_dao.get_wallet(user_id)
-            if wallet:
-                download_type = DownloadType[image]
-                if download_type is DownloadType.PNG:
-                    ext = ".png"
-                else:
-                    ext = ".gif"
+            download_type = DownloadType[image]
+            if download_type is DownloadType.PNG:
+                ext = ".png"
+            else:
+                ext = ".gif"
 
-                data = await request_composite_async(wallet=wallet, download_type=download_type)
-                if data:
-                    if type(data) is not bytes:
-                        msg = data.error_msg
-                        msg_data = data.data
+            data = await request_composite_async(wallet=wallet, download_type=download_type)
+            if data:
+                if type(data) is not bytes:
+                    msg = data.error_msg
+                    msg_data = data.data
 
-                        if msg_data:
-                            channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
-                            await channel.send(data)
+                    if msg_data:
+                        channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
+                        await channel.send(data)
 
-                        await interaction.followup.send(
-                            msg,
-                            ephemeral=True
-                        )
-                        return
-
-                    buffer = BytesIO(data)
-                    file = discord.File(fp=buffer, filename=f"composite{ext}")
-
-                    color = discord.Color.random()
-                    embed = discord.Embed(title=f"{interaction.user.display_name}'s mashup", color=color)
-                    embed.set_image(url=f"attachment://composite{ext}")
-                    embed.set_footer(text="© 2026 mash-it")
-
-                    msg = await interaction.followup.send(embed=embed, file=file, ephemeral=False)
+                    await interaction.followup.send(
+                        msg,
+                        ephemeral=True
+                    )
                     return
 
-            await interaction.followup.send(
-                f"use /connect_wallet command (again)",
-                ephemeral=True
-            )
+                buffer = BytesIO(data)
+                file = discord.File(fp=buffer, filename=f"composite{ext}")
+
+                color = discord.Color.random()
+                embed = discord.Embed(title=f"{interaction.user.display_name}'s mashup", color=color)
+                embed.set_image(url=f"attachment://composite{ext}")
+                embed.set_footer(text="© 2026 mash-it")
+
+                msg = await interaction.followup.send(embed=embed, file=file, ephemeral=False)
 
         except Exception as e:
             channel = await interaction.guild.fetch_channel(TEST_CHANNEL_ID)
