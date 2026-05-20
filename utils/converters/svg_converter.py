@@ -8,6 +8,7 @@ import copy
 ET.register_namespace("", "http://www.w3.org/2000/svg")
 ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
 
+
 def _pretty_xml(elem, level=0):
     """In-place pretty formatter that also trims useless whitespace."""
     indent = "  "
@@ -24,6 +25,47 @@ def _pretty_xml(elem, level=0):
             elem.text = None
     if level and (not elem.tail or not elem.tail.strip()):
         elem.tail = i
+
+
+def _resolve_use_tags_recursive(root, ns, defs_map, max_depth=10):
+    """Recursively replaces <use> tags with real elements down to nested groups."""
+    if max_depth <= 0:
+        return
+
+    made_replacements = False
+    for parent in root.iter():
+        children = list(parent)
+        for i, use_elem in enumerate(children):
+            if use_elem.tag != f"{{{ns['svg']}}}use":
+                continue
+
+            href = use_elem.get('href') or use_elem.get(f"{{{ns['xlink']}}}href")
+            if href in defs_map:
+                referenced_node = copy.deepcopy(defs_map[href])
+
+                # Clear duplicate ID so we don't break XML DOM spec rules
+                if 'id' in referenced_node.attrib:
+                    del referenced_node.attrib['id']
+
+                # Handle positioning modifiers
+                ux, uy = use_elem.get('x', '0'), use_elem.get('y', '0')
+                if ux != '0' or uy != '0':
+                    exist_tr = referenced_node.get('transform', '')
+                    referenced_node.set('transform', f"translate({ux}, {uy}) {exist_tr}".strip())
+
+                # Inherit styling attributes from <use> wrapper
+                for attr, val in use_elem.attrib.items():
+                    if attr not in ['href', f"{{{ns['xlink']}}}href", 'x', 'y', 'id']:
+                        referenced_node.set(attr, val)
+
+                # Replace <use> with real element node
+                parent[i] = referenced_node
+                made_replacements = True
+
+    # If we substituted a group that had nested <use> tags, resolve them too
+    if made_replacements:
+        _resolve_use_tags_recursive(root, ns, defs_map, max_depth - 1)
+
 
 def process_svg(input_bytes):
     tree = ET.parse(io.BytesIO(input_bytes))
@@ -88,7 +130,6 @@ def process_svg(input_bytes):
 
     # --- 2. Replace masked elements with vector paths ---
     for parent in root.iter():
-        # Iterate over a static list of children to avoid issues while modifying
         children = list(parent)
         for i, child in enumerate(children):
             mask_attr = child.get('mask')
@@ -112,50 +153,38 @@ def process_svg(input_bytes):
             if opacity: new_path.set('opacity', opacity)
             if 'transform' in child.attrib: new_path.set('transform', child.attrib['transform'])
 
-            # Direct replacement by index
             parent[i] = new_path
 
-    # --- 3. Replace <use> tags with actual elements ---
+    # --- 3. Replace <use> tags with real elements (Recursive Back-End Resolve) ---
     defs_map = {f"#{elem.get('id')}": elem for elem in root.iter() if elem.get('id')}
+    _resolve_use_tags_recursive(root, ns, defs_map)
 
+    # --- 4. Global Sanitization Pass (Replaces Swift Regex Processing) ---
+    for elem in root.iter():
+        # Remove clip-path attributes
+        if 'clip-path' in elem.attrib:
+            del elem.attrib['clip-path']
+
+        # Remove inline styles that use clip-paths (e.g., style="clip-path: url(#x)")
+        if 'style' in elem.attrib:
+            styles = elem.attrib['style'].split(';')
+            cleaned_styles = [s for s in styles if not s.strip().lower().startswith('clip-path')]
+            if cleaned_styles:
+                elem.attrib['style'] = ';'.join(cleaned_styles).strip()
+            else:
+                del elem.attrib['style']
+
+    # Remove all explicit <clipPath> elements completely
     for parent in root.iter():
-        children = list(parent)
-        for i, use_elem in enumerate(children):
-            if use_elem.tag != f"{{{ns['svg']}}}use":
-                continue
+        for clip in list(parent.findall(".//svg:clipPath", ns)):
+            parent.remove(clip)
 
-            href = use_elem.get('href') or use_elem.get(f"{{{ns['xlink']}}}href")
-            if href in defs_map:
-                referenced_node = copy.deepcopy(defs_map[href])
-
-                # Handle positioning
-                ux, uy = use_elem.get('x', '0'), use_elem.get('y', '0')
-                if ux != '0' or uy != '0':
-                    exist_tr = referenced_node.get('transform', '')
-                    referenced_node.set('transform', f"translate({ux}, {uy}) {exist_tr}".strip())
-
-                # Inherit attributes from <use>
-                for attr, val in use_elem.attrib.items():
-                    if attr not in ['href', f"{{{ns['xlink']}}}href", 'x', 'y', 'id']:
-                        referenced_node.set(attr, val)
-
-                # Direct replacement by index
-                parent[i] = referenced_node
-
-    # --- 4. Cleanup ---
+    # Clean empty leftover definitions and image fragments
     for defs in root.findall(".//svg:defs", ns):
-        # We only remove direct children of <defs> to avoid ValueError
-        # for images nested inside masks or groups within defs.
         for img in list(defs.findall("svg:image", ns)):
             defs.remove(img)
-
         for m in list(defs.findall("svg:mask", ns)):
             defs.remove(m)
-
-    # Remove clipPathUnits
-    for clip_path in root.findall(".//svg:clipPath", ns):
-        if 'clipPathUnits' in clip_path.attrib:
-            del clip_path.attrib['clipPathUnits']
 
     # --- 5. Finalize ---
     _pretty_xml(root)
