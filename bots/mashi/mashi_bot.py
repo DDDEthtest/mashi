@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 from bots.mashi.modules.message_module import get_notify_embed
@@ -5,7 +7,7 @@ from configs.bot_config import RELEASES_CHANNEL_ID, APPROVALS_CHANNEL_ID, RELEAS
     TEST_CHANNEL_ID
 from data.postgres.daos.reactions_dao import ReactionsDao
 from services.caching import fetch_and_cache_async
-from services.notifications import notify_android_users
+from services.notifications import notify_android_users, notify_ios_users
 
 
 def _get_poster_id_from_message(message: discord.Message) -> int | None:
@@ -73,11 +75,21 @@ class MashiBot(commands.Bot):
                 android_body = f"""Price: {listing["priceMatic"]}USDC
 Supply: {listing["maxSupply"]}
 Max per-wallet: {listing["maxPerWallet"]}"""
-                notify_android_users(
-                    title=android_title,
-                    body=android_body,
-                    listing_id=data['docId']
-                )
+
+                tasks = [
+                    notify_android_users(
+                        title=android_title,
+                        body=android_body,
+                        listing_id=data['docId']
+                    ),
+                    notify_ios_users(
+                        title=android_title,
+                        body=android_body,
+                        listing_id=data['docId']
+                    )
+                ]
+
+                await asyncio.gather(*tasks)
 
                 await fetch_and_cache_async(data['docId'])
         except Exception as e:
