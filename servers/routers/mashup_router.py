@@ -58,11 +58,12 @@ async def get_app_mashup(response: Response, request: Request, download_type: st
 
         mashup = await request_composite_async(json=json_data, download_type=download_type)
 
-        if not mashup or not isinstance(data, bytes):
+        if not mashup or not isinstance(mashup, bytes):
             raise HTTPException(status_code=404, detail="No mashup found for this wallet")
 
         buffer = BytesIO(mashup)
         buffer.seek(0)
+
         return StreamingResponse(buffer, media_type=media_type)
 
     except Exception as e:
