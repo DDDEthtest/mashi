@@ -1,7 +1,6 @@
 import time
 import requests
 from typing import Optional
-from data.remote.client import api_client
 
 
 def get_image_src(image_url: str, max_retries: int = 5) -> Optional[bytes]:
@@ -13,7 +12,7 @@ def get_image_src(image_url: str, max_retries: int = 5) -> Optional[bytes]:
     for url in urls_to_try:
         for attempt in range(max_retries):
             try:
-                res = api_client.get(url, timeout=10)
+                res = requests.get(url, timeout=10)
 
                 if res.status_code == 200:
                     return res.content

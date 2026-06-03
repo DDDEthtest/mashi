@@ -7,10 +7,15 @@ from data.repos.mashi_repo import get_composite_async
 _composite_semaphore = asyncio.Semaphore(MAX_GENERATIONS)
 
 
-async def request_composite_async(wallet: str, download_type: DownloadType = DownloadType.PNG):
+async def request_composite_async(wallet: str = None, json = None, download_type: DownloadType = DownloadType.PNG):
     async with _composite_semaphore:
         try:
-            mashup = get_mashup(wallet)
+            if wallet is not None:
+                mashup = get_mashup(wallet)
+            elif json is not None:
+                mashup = json
+            else:
+                return None
 
             return await get_composite_async(
                 mashup=mashup,

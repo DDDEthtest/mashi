@@ -1,5 +1,5 @@
 from io import BytesIO
-from fastapi import Response, status, HTTPException, APIRouter
+from fastapi import Response, status, HTTPException, APIRouter, Request
 from starlette.responses import StreamingResponse
 from balancer.balancer import request_composite_async
 from data.models.download_type import DownloadType
@@ -20,7 +20,7 @@ async def get_mashup(response: Response, wallet: str, download_type: str = "png"
 
         download_type = DownloadType[download_type.upper()]
 
-        data = await request_composite_async(wallet, download_type=download_type)
+        data = await request_composite_async(wallet=wallet, download_type=download_type)
 
         if not data or not isinstance(data, bytes):
             raise HTTPException(status_code=404, detail="No mashup found for this wallet")
@@ -34,6 +34,33 @@ async def get_mashup(response: Response, wallet: str, download_type: str = "png"
         return {"message": e}
 
 
+@mashup_router.post("/api/mashi/app_mashup")
+async def get_app_mashup(response: Response, request: Request, download_type: str = "png"):
+    try:
+        data = await request.json()
+
+        if download_type == "png":
+            media_type = "image/png"
+        elif download_type == "gif":
+            media_type = "image/gif"
+        else:
+            raise HTTPException(status_code=500, detail="Wrong download type: should be either png or gif")
+
+        download_type = DownloadType[download_type.upper()]
+
+        mashup = await request_composite_async(json=data, download_type=download_type)
+
+        if not mashup or not isinstance(data, bytes):
+            raise HTTPException(status_code=404, detail="No mashup found for this wallet")
+
+        buffer = BytesIO(mashup)
+        buffer.seek(0)
+        return StreamingResponse(buffer, media_type=media_type)
+
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"message": e}
+
 @mashup_router.get("/api/generate/request/{wallet}")
 async def generate_request(response: Response, wallet: str, download_type: str = "png"):
     try:
@@ -44,7 +71,7 @@ async def generate_request(response: Response, wallet: str, download_type: str =
 
         composite_dao = CompositeDao()
 
-        data = await request_composite_async(wallet, download_type=download_type)
+        data = await request_composite_async(wallet=wallet, download_type=download_type)
         composite_dao.add_composite_data(wallet=wallet,byte_data=data, data_type=download_type.name.lower())
 
         response.status_code = status.HTTP_200_OK
