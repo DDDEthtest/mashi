@@ -1,5 +1,5 @@
 # 1. Base image (Node + Playwright deps)
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy
 
 # 2. Environment
 ENV PYTHONUNBUFFERED=1

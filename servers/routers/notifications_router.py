@@ -24,6 +24,24 @@ async def release_notify(request: Request, response: Response):
         return {"message": e}
 
 
+@notification_router.post("/api/mashi/notify")
+async def alt_notify(request: Request, response: Response):
+    try:
+        data = await request.json()
+        if len(data) == 0:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": "Invalid request"}
+
+        await asyncio.gather(*[MashiBot.instance().notify_async(data)])
+        response.status_code = status.HTTP_200_OK
+        return {"message": "Data received"}
+
+    except Exception as e:
+        print(e)
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"message": e}
+
+
 @notification_router.post("/api/mashi/approval_notify")
 async def approval_notify(request: Request, response: Response):
     try:

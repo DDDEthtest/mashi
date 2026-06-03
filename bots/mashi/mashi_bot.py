@@ -76,20 +76,20 @@ class MashiBot(commands.Bot):
 Supply: {listing["maxSupply"]}
 Max per-wallet: {listing["maxPerWallet"]}"""
 
-                tasks = [
+                try:
                     notify_android_users(
                         title=android_title,
                         body=android_body,
                         listing_id=data['docId']
-                    ),
+                    )
+
                     notify_ios_users(
                         title=android_title,
-                        body=android_body,
-                        listing_id=data['docId']
+                    body=android_body,
+                    listing_id=data['docId']
                     )
-                ]
-
-                await asyncio.gather(*tasks)
+                except Exception as e:
+                    print(f"FUCK ${e}")
 
                 await fetch_and_cache_async(data['docId'])
         except Exception as e:

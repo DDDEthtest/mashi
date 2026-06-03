@@ -56,7 +56,7 @@ async def generate_request(response: Response, wallet: str, download_type: str =
 
 
 @mashup_router.get("/api/generate/composite/{wallet}")
-async def generate_request(response: Response, wallet: str):
+async def generate_composite(response: Response, wallet: str):
     composite_dao = CompositeDao()
 
     try:
