@@ -39,6 +39,14 @@ async def get_app_mashup(response: Response, request: Request, download_type: st
     try:
         data = await request.json()
 
+        colors = data.get("colors", {})
+        traits = data.get("assets", [])
+
+        json_data = {
+            "colors": colors,
+            "assets": traits
+        }
+
         if download_type == "png":
             media_type = "image/png"
         elif download_type == "gif":
@@ -48,7 +56,7 @@ async def get_app_mashup(response: Response, request: Request, download_type: st
 
         download_type = DownloadType[download_type.upper()]
 
-        mashup = await request_composite_async(json=data, download_type=download_type)
+        mashup = await request_composite_async(json=json_data, download_type=download_type)
 
         if not mashup or not isinstance(data, bytes):
             raise HTTPException(status_code=404, detail="No mashup found for this wallet")
