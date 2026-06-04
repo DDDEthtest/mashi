@@ -35,7 +35,7 @@ async def get_mashup(response: Response, wallet: str, download_type: str = "png"
 
 
 @mashup_router.post("/api/mashi/app_mashup")
-async def get_app_mashup(response: Response, request: Request, download_type: str = "png"):
+async def get_app_mashup(response: Response, request: Request, download_type: str = "png", minted_name: str = None):
     try:
         data = await request.json()
 
@@ -56,7 +56,7 @@ async def get_app_mashup(response: Response, request: Request, download_type: st
 
         download_type = DownloadType[download_type.upper()]
 
-        mashup = await request_composite_async(json=json_data, download_type=download_type)
+        mashup = await request_composite_async(json=json_data, download_type=download_type, minted_name=minted_name)
 
         if not mashup or not isinstance(mashup, bytes):
             raise HTTPException(status_code=404, detail="No mashup found for this wallet")

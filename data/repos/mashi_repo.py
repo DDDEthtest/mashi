@@ -8,6 +8,7 @@ from data.postgres.daos.image_dao import ImageDao
 from data.remote.ipfs_api import get_image_src
 from services.bridge import generate_gif_async
 from utils.helpers.image_helper import get_image_type
+from utils.helpers.minted_helper import get_minted_trait
 from utils.helpers.svg_helper import replace_svg_colors
 
 
@@ -42,7 +43,7 @@ def _get_asset(asset, colors):
         return None
 
 
-async def get_composite_async(mashup: dict, download_type: DownloadType = DownloadType.PNG) -> bytes | MashupError:
+async def get_composite_async(mashup: dict, download_type: DownloadType = DownloadType.PNG, minted_name: str = None) -> bytes | MashupError:
     try:
         assets = mashup.get("assets", [])
         colors = mashup.get("colors", {})
@@ -62,6 +63,9 @@ async def get_composite_async(mashup: dict, download_type: DownloadType = Downlo
 
         # Filter and order traits based on LAYER_ORDER
         traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
+
+        if minted_name is not None:
+            traits.append(get_minted_trait(minted_name))
 
         if download_type is DownloadType.PNG:
             data: bytes = get_combined_png(traits)
