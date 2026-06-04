@@ -21,8 +21,6 @@ def get_notify_embed(data: dict, is_release: bool) -> discord.Embed:
     # details
     artist_name = data["artistName"]
 
-    url = "https://mash-it.io/mashers"
-
     if is_release:
         listing = data.get("listing", {})
 
@@ -31,6 +29,8 @@ def get_notify_embed(data: dict, is_release: bool) -> discord.Embed:
         max_supply = listing["maxSupply"]
         max_per_wallet = listing["maxPerWallet"]
         url = f"https://mash-it.io/mashers?listing={listing_id}"
+    else:
+        url = "https://mash-it.io/mashers"  # ← move default here
 
     embed = discord.Embed(title=title, url=url, color=discord.Color.green())
 
@@ -52,7 +52,7 @@ Max Per-Wallet: {max_per_wallet}"""
     embed.add_field(name="Assets:", value=assets_links, inline=False)
 
     # composite and footer
-    composite_url = assets.get("composite").replace("ipfs://", "https://ipfs.io/ipfs/")
+    composite_url = assets.get("composite", "").replace("ipfs://", "https://ipfs.io/ipfs/")
     embed.set_image(url=composite_url)
     embed.set_footer(text=f"© 2026 mash-it x {artist_name}")
     return embed

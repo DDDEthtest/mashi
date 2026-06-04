@@ -92,6 +92,7 @@ Max per-wallet: {listing["maxPerWallet"]}"""
                     print(f"FUCK ${e}")
 
                 await fetch_and_cache_async(data['docId'])
+
         except Exception as e:
             print(e)
             channel = self.instance().get_channel(TEST_CHANNEL_ID)
