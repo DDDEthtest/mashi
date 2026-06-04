@@ -52,3 +52,6 @@ def notify_ios_users(title: str, body: str, listing_id=None):
 
     except Exception as e:
         print(e)
+
+if __name__ == '__main__':
+    notify_ios_users("TEST", "TEST BODY", "L8Zq2CIplXfw3oPT1AXo")
