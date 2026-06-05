@@ -1,6 +1,6 @@
 import io
 import re
-import cairosvg
+from wand.image import Image as WandImage
 from PIL import Image
 from configs.img_config import RESAMPLE_MODE
 
@@ -42,14 +42,20 @@ def replace_svg_colors(data: bytes, body_color: str, eyes_color: str, hair_color
 def convert_svg_to_png(data: bytes, target_size=None):
     try:
         data = remove_redundant_metadata(data)
-        png_bytes = cairosvg.svg2png(bytestring=data)
+
+        with WandImage(blob=data, format="svg") as svg:
+            svg.format = "png"
+            png_bytes = svg.make_blob()
 
         img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+
         if target_size:
             img = img.resize(target_size, resample=RESAMPLE_MODE)
 
         output = io.BytesIO()
         img.save(output, format="PNG")
         return output.getvalue()
+
     except Exception as e:
-        print(e)
+        print(f"SVG conversion failed: {e}")
+        return None

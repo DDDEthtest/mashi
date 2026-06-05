@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     wget \
     xz-utils \
+    imagemagick \
+    fontconfig \
+    fonts-dejavu-core \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
