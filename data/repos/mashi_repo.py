@@ -64,7 +64,7 @@ async def get_composite_async(mashup: dict, download_type: DownloadType = Downlo
         # Filter and order traits based on LAYER_ORDER
         traits = [srcs[name] for name in LAYER_ORDER if name in srcs]
 
-        if minted_name is not None:
+        if minted_name is not None and minted_name != "":
             traits.append(get_minted_trait(minted_name))
 
         if download_type is DownloadType.PNG:

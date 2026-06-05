@@ -51,14 +51,6 @@ class MashiBot(commands.Bot):
             if not data:
                 return
 
-            try:
-                listing = data.get("listing", {})
-                listing["priceMatic"]
-                is_release = True
-            except Exception as e:
-                print(e)
-                is_release = False
-
             embed = get_notify_embed(data, is_release=is_release)
 
             if is_release:
