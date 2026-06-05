@@ -9,7 +9,7 @@ from utils.helpers.svg_helper import convert_svg_to_png
 resample_mode = Image.Resampling.LANCZOS
 
 
-def _convert_to_detailed_traits(traits: list[bytes]) -> list[DetailedTrait]:
+async def _convert_to_detailed_traits(traits: list[bytes]) -> list[DetailedTrait]:
     detailed_traits = []
     for i, trait in enumerate(traits):
         temp_bytes = trait
@@ -21,7 +21,7 @@ def _convert_to_detailed_traits(traits: list[bytes]) -> list[DetailedTrait]:
             temp_bytes = extract_first_frame(trait)
 
         if image_type is ImageType.SVG:
-            temp_bytes = convert_svg_to_png(trait)
+            temp_bytes = await convert_svg_to_png(trait)
 
         if i == 0 or i == len(traits) - 1:
             image = Image.open(io.BytesIO(temp_bytes))
@@ -33,7 +33,7 @@ def _convert_to_detailed_traits(traits: list[bytes]) -> list[DetailedTrait]:
     return detailed_traits
 
 
-def get_combined_png(sorted_traits: list):
+async def get_combined_png(sorted_traits: list):
     bg_size = (DEFAULT_PNG_WIDTH, DEFAULT_PNG_HEIGHT)
     trait_size = (DEFAULT_TRAIT_WIDTH, DEFAULT_TRAIT_HEIGHT)
 
@@ -41,7 +41,7 @@ def get_combined_png(sorted_traits: list):
         if not sorted_traits:
             raise ValueError("No traits found")
 
-        detailed_traits = _convert_to_detailed_traits(sorted_traits)
+        detailed_traits = await _convert_to_detailed_traits(sorted_traits)
 
         base = Image.new("RGBA", bg_size, (0, 0, 0, 0))
         for detailed_trait in detailed_traits:

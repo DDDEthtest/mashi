@@ -68,7 +68,7 @@ async def get_composite_async(mashup: dict, download_type: DownloadType = Downlo
             traits.append(get_minted_trait(minted_name))
 
         if download_type is DownloadType.PNG:
-            data: bytes = get_combined_png(traits)
+            data: bytes = await get_combined_png(traits)
         else:
             data: bytes = await generate_gif_async(traits)
 

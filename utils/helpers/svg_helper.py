@@ -1,8 +1,5 @@
-import io
 import re
-from wand.image import Image as WandImage
-from PIL import Image
-from configs.img_config import RESAMPLE_MODE
+from playwright.async_api import async_playwright
 
 
 def remove_redundant_metadata(data: bytes) -> bytes:
@@ -39,23 +36,20 @@ def replace_svg_colors(data: bytes, body_color: str, eyes_color: str, hair_color
     return svg_str.replace('\n', '').encode("utf-8")
 
 
-def convert_svg_to_png(data: bytes, target_size=None):
-    try:
-        data = remove_redundant_metadata(data)
+async def convert_svg_to_png(svg_bytes):
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
 
-        with WandImage(blob=data, format="svg") as svg:
-            svg.format = "png"
-            png_bytes = svg.make_blob()
+        svg = svg_bytes.decode("utf-8")
 
-        img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+        await page.set_content(svg)
 
-        if target_size:
-            img = img.resize(target_size, resample=RESAMPLE_MODE)
+        png = await page.locator("svg").screenshot(
+            type="png",
+            omit_background=True
+        )
 
-        output = io.BytesIO()
-        img.save(output, format="PNG")
-        return output.getvalue()
+        await browser.close()
 
-    except Exception as e:
-        print(f"SVG conversion failed: {e}")
-        return None
+        return png
